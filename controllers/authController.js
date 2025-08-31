@@ -4,7 +4,7 @@ const generateToken = require('../utils/generateToken');
 
 // @desc Register new user
 exports.registerUser = async (req, res) => {
-  const { name, age, phone, email, password } = req.body;
+  const { name, age, phone, email, password, role } = req.body;
 
   try {
     const userExists = await User.findOne({ email });
@@ -56,3 +56,4 @@ exports.loginUser = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
