@@ -9,7 +9,7 @@ const userSchema = mongoose.Schema(
     password: { type: String, required: true },
     role: { 
       type: String, 
-      enum: ['user', 'admin', 'trainer', 'superadmin'], 
+      enum: ['user', 'admin', 'consultant', 'superadmin'], 
       default: 'user' 
     },
   },
@@ -17,3 +17,4 @@ const userSchema = mongoose.Schema(
 );
 
 module.exports = mongoose.model('User', userSchema);
+
