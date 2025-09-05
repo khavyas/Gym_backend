@@ -14,7 +14,7 @@ const eventSchema = mongoose.Schema(
     gymCenter: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'GymCenter',
-      required: true,
+      required: false,
     },
 
     createdBy: {
