@@ -8,16 +8,20 @@ const eventSchema = mongoose.Schema(
     cost: { type: Number, default: 0 },
     benefits: [{ type: String }],
     date: { type: Date, required: true },
-    location: { type: String, required: true },
 
-    // Event type (offline, online, hybrid)
+    location: {
+      type: String,
+      required: function () {
+        return this.eventType === 'offline' || this.eventType === 'hybrid';
+      },
+    },
+
     eventType: {
       type: String,
       enum: ['offline', 'online', 'hybrid'],
       default: 'offline',
     },
 
-    // Optional link for online/hybrid events
     onlineLink: {
       type: String,
       required: function () {
@@ -25,7 +29,6 @@ const eventSchema = mongoose.Schema(
       },
     },
 
-    // Reference to GymCenter
     gymCenter: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'GymCenter',
