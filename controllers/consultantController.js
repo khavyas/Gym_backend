@@ -1,0 +1,35 @@
+const Consultant = require('../models/Consultant');
+
+// @desc Create consultant profile
+exports.createConsultant = async (req, res) => {
+  try {
+    const consultant = await Consultant.create({
+      user: req.user._id, // from JWT
+      ...req.body,
+    });
+    res.status(201).json(consultant);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// @desc Get all consultants
+exports.getConsultants = async (req, res) => {
+  try {
+    const consultants = await Consultant.find().populate('user', 'name email role');
+    res.json(consultants);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// @desc Get single consultant
+exports.getConsultantById = async (req, res) => {
+  try {
+    const consultant = await Consultant.findById(req.params.id).populate('user', 'name email role');
+    if (!consultant) return res.status(404).json({ message: 'Consultant not found' });
+    res.json(consultant);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
