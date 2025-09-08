@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const Profile = require('../models/Profile'); // <-- import Profile model
 const bcrypt = require('bcryptjs');
 const generateToken = require('../utils/generateToken');
 
@@ -7,26 +8,37 @@ exports.registerUser = async (req, res) => {
   const { name, age, phone, email, password, role } = req.body;
 
   try {
+    // check if user already exists
     const userExists = await User.findOne({ email });
     if (userExists)
       return res.status(400).json({ message: 'User already exists' });
 
+    // hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
+    // create user
     const user = await User.create({
       name,
       age,
       phone,
       email,
       password: hashedPassword,
-      role, 
+      role,
+    });
+
+    // create profile linked to the user
+    await Profile.create({
+      userId: user._id,
+      fullName: name,
+      email: email,
     });
 
     res.status(201).json({
       _id: user.id,
       name: user.name,
       email: user.email,
+      role: user.role,
       token: generateToken(user.id),
     });
   } catch (error) {
@@ -46,7 +58,7 @@ exports.loginUser = async (req, res) => {
         _id: user.id,
         name: user.name,
         email: user.email,
-        role: user.role, 
+        role: user.role,
         token: generateToken(user.id),
       });
     } else {
@@ -56,4 +68,3 @@ exports.loginUser = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-

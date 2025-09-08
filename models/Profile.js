@@ -1,10 +1,16 @@
 import mongoose from "mongoose";
 
 const profileSchema = new mongoose.Schema({
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: true,
+        unique: true, 
+    },
   fullName: {
     type: String,
     required: true,
-    immutable: true, // cannot be changed once set
+    immutable: true,
   },
   email: {
     type: String,
