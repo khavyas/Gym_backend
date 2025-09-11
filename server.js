@@ -1,12 +1,12 @@
-import express from "express";
-import dotenv from "dotenv";
-import connectDB from "./config/db.js";
-import authRoutes from "./routes/authRoutes.js";
-import eventRoutes from "./routes/eventRoutes.js";
-import waterRoutes from "./routes/waterRoutes.js";
-import consultantRoutes from "./routes/consultantRoutes.js";
-import profileRoutes from "./routes/profileRoutes.js";
-import cors from "cors";
+const express = require("express");
+const dotenv = require("dotenv");
+const connectDB = require("./config/db");
+const authRoutes = require("./routes/authRoutes");
+const eventRoutes = require("./routes/eventRoutes");
+const waterRoutes = require("./routes/waterRoutes");
+const consultantRoutes = require("./routes/consultantRoutes");
+const profileRoutes = require("./routes/profileRoutes");
+const cors = require("cors");
 
 dotenv.config();
 connectDB();
