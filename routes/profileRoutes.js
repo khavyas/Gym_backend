@@ -1,9 +1,9 @@
-import express from "express";
-import { getProfile, updateProfile } from "../controllers/profileController.js";
+const express = require("express");
+const { getProfile, updateProfile } = require("../controllers/profileController");
 
 const router = express.Router();
 
 router.get("/:id", getProfile);
 router.put("/:id", updateProfile);
 
-export default router;
+module.exports = router;   
