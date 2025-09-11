@@ -1,29 +1,58 @@
 const GymCenter = require('../models/GymCenter');
+const User = require('../models/User');
+const bcrypt = require('bcryptjs');
 
-// @desc Create a new gym
-// @route POST /api/gyms
-// @access Private (admin only)
+// @desc    Superadmin creates a gym and admin credentials
 exports.createGym = async (req, res) => {
   try {
-    const { name, address, phone, email } = req.body;
-
-    if (!name || !address) {
-      return res.status(400).json({ message: 'Name and address are required' });
+    if (req.user.role !== 'superadmin') {
+      return res.status(403).json({ message: 'Only superadmin can create gyms' });
     }
 
+    const { name, address, phone, email, adminName, adminEmail, adminPassword } = req.body;
+
+    // 1️⃣ Check if admin email already exists
+    const existingAdmin = await User.findOne({ email: adminEmail });
+    if (existingAdmin) {
+      return res.status(400).json({ message: 'Admin with this email already exists' });
+    }
+
+    // 2️⃣ Hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(adminPassword, salt);
+
+    // 3️⃣ Create admin user
+    const adminUser = await User.create({
+      name: adminName,
+      email: adminEmail,
+      password: hashedPassword,
+      role: 'admin',
+    });
+
+    // 4️⃣ Create gym and link admin
     const gym = await GymCenter.create({
       name,
       address,
       phone,
       email,
-      admin: req.user._id, // link to logged-in admin
+      admin: adminUser._id,
     });
 
-    res.status(201).json(gym);
+    res.status(201).json({
+      message: 'Gym and admin created successfully',
+      gym,
+      admin: {
+        _id: adminUser._id,
+        name: adminUser.name,
+        email: adminUser.email,
+        role: adminUser.role,
+      },
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
+
 
 // @desc Get all gyms
 // @route GET /api/gyms
