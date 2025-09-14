@@ -2,12 +2,14 @@ const GymCenter = require('../models/GymCenter');
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 
+
 // @desc    Superadmin creates a gym and admin credentials
 exports.createGym = async (req, res) => {
   try {
     console.log("👉 Incoming payload:", req.body);
     console.log("👉 User making request:", req.user);
-    if (req.user.role !== 'superadmin') {
+
+    if (!req.user || req.user.role !== 'superadmin') {
       return res.status(403).json({ message: 'Only superadmin can create gyms' });
     }
 
@@ -50,10 +52,16 @@ exports.createGym = async (req, res) => {
         role: adminUser.role,
       },
     });
+
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("❌ Error in createGym:", error); // <-- full error stack in Railway logs
+    res.status(500).json({
+      message: "Server error while creating gym",
+      error: error.message, // <-- frontend sees real reason
+    });
   }
 };
+
 
 
 // @desc Get all gyms
