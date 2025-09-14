@@ -5,6 +5,8 @@ const bcrypt = require('bcryptjs');
 // @desc    Superadmin creates a gym and admin credentials
 exports.createGym = async (req, res) => {
   try {
+    console.log("👉 Incoming payload:", req.body);
+    console.log("👉 User making request:", req.user);
     if (req.user.role !== 'superadmin') {
       return res.status(403).json({ message: 'Only superadmin can create gyms' });
     }
