@@ -34,13 +34,14 @@ exports.registerUser = async (req, res) => {
       email: email,
     });
 
-    res.status(201).json({
-      userId: user._id, 
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      token: generateToken(user.id),
-    });
+res.status(201).json({
+  userId: user._id,   
+  name: user.name,
+  email: user.email,
+  role: user.role,
+  token: generateToken(user._id), 
+});
+
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -54,13 +55,13 @@ exports.loginUser = async (req, res) => {
     const user = await User.findOne({ email });
 
     if (user && (await bcrypt.compare(password, user.password))) {
-      res.json({
-        userId: user._id, 
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        token: generateToken(user.id),
-      });
+    res.json({
+      userId: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      token: generateToken(user._id),
+    });
     } else {
       res.status(401).json({ message: 'Invalid Email or Password' });
     }
