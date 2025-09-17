@@ -4,7 +4,7 @@ const Profile = require("../models/Profile");
 // @desc Get user profile by _id
 const getProfile = async (req, res) => {
   try {
-    const profile = await Profile.findById(req.params.id);
+    const profile = await Profile.findOne({ userId: new mongoose.Types.ObjectId(req.params.userId) });
     if (!profile) return res.status(404).json({ message: "Profile not found" });
     res.json(profile);
   } catch (error) {
@@ -12,22 +12,24 @@ const getProfile = async (req, res) => {
   }
 };
 
-// @desc Update profile by _id
-const updateProfile = async (req, res) => {
+export const updateProfile = async (req, res) => {
   try {
-    const profile = await Profile.findById(req.params.id);
-    if (!profile) return res.status(404).json({ message: "Profile not found" });
+    const { userId } = req.params;
 
-    const { fullName, email, _id, ...editableFields } = req.body;
+    const profile = await Profile.findOneAndUpdate(
+      { userId: new mongoose.Types.ObjectId(userId) }, // ✅ cast to ObjectId
+      { $set: req.body },                             // apply updates
+      { new: true, runValidators: true }              // return updated doc & validate
+    );
 
-    Object.assign(profile, editableFields);
-    await profile.save();
+    if (!profile) {
+      return res.status(404).json({ message: "Profile not found" });
+    }
 
-    res.json({ message: "Profile updated successfully", profile });
+    res.json(profile);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// ✅ export both
 module.exports = { getProfile, updateProfile };
