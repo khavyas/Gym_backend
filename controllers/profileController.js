@@ -19,7 +19,7 @@ exports.updateProfile = async (req, res) => {
     const { userId } = req.params;
 
     const profile = await Profile.findOneAndUpdate(
-      { userId: new mongoose.Types.ObjectId(userId) }, // ✅ cast to ObjectId
+      { userId: new mongoose.Types.ObjectId(userId) }, 
       { $set: req.body },                             // apply updates
       { new: true, runValidators: true }              // return updated doc & validate
     );
@@ -27,3 +27,9 @@ exports.updateProfile = async (req, res) => {
     if (!profile) {
       return res.status(404).json({ message: "Profile not found" });
     }
+
+    res.json(profile);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
