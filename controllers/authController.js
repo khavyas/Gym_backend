@@ -1,10 +1,10 @@
-const User = require('../models/User');
-const Profile = require('../models/Profile'); // <-- import Profile model
-const bcrypt = require('bcryptjs');
-const generateToken = require('../utils/generateToken');
+import User from '../models/User.js';
+import Profile from '../models/Profile.js';
+import bcrypt from 'bcryptjs';
+import generateToken from '../utils/generateToken.js';
 
 // @desc Register new user
-exports.registerUser = async (req, res) => {
+export const registerUser = async (req, res) => {
   const { name, age, phone, email, password, role } = req.body;
 
   try {
@@ -34,13 +34,13 @@ exports.registerUser = async (req, res) => {
       email: email,
     });
 
-res.status(201).json({
-  userId: user._id,   
-  name: user.name,
-  email: user.email,
-  role: user.role,
-  token: generateToken(user._id), 
-});
+    res.status(201).json({
+      userId: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      token: generateToken(user._id),
+    });
 
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -48,20 +48,20 @@ res.status(201).json({
 };
 
 // @desc Login user
-exports.loginUser = async (req, res) => {
+export const loginUser = async (req, res) => {
   const { email, password } = req.body;
 
   try {
     const user = await User.findOne({ email });
 
     if (user && (await bcrypt.compare(password, user.password))) {
-    res.json({
-      userId: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      token: generateToken(user._id),
-    });
+      res.json({
+        userId: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        token: generateToken(user._id),
+      });
     } else {
       res.status(401).json({ message: 'Invalid Email or Password' });
     }

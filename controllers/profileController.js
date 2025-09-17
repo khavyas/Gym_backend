@@ -1,8 +1,9 @@
 // controllers/profileController.js
-const Profile = require("../models/Profile");
+import Profile from "../models/Profile.js";
+import mongoose from "mongoose";
 
 // @desc Get user profile by _id
-const getProfile = async (req, res) => {
+export const getProfile = async (req, res) => {
   try {
     const profile = await Profile.findOne({ userId: new mongoose.Types.ObjectId(req.params.userId) });
     if (!profile) return res.status(404).json({ message: "Profile not found" });
@@ -31,5 +32,3 @@ export const updateProfile = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
-module.exports = { getProfile, updateProfile };
