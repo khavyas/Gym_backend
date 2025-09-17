@@ -1,10 +1,10 @@
-import User from '../models/User.js';
-import Profile from '../models/Profile.js';
-import bcrypt from 'bcryptjs';
-import generateToken from '../utils/generateToken.js';
+const User = require('../models/User');
+const Profile = require('../models/Profile'); // <-- import Profile model
+const bcrypt = require('bcryptjs');
+const generateToken = require('../utils/generateToken');
 
 // @desc Register new user
-export const registerUser = async (req, res) => {
+exports.registerUser = async (req, res) => {
   const { name, age, phone, email, password, role } = req.body;
 
   try {
@@ -48,7 +48,7 @@ export const registerUser = async (req, res) => {
 };
 
 // @desc Login user
-export const loginUser = async (req, res) => {
+exports.loginUser = async (req, res) => {
   const { email, password } = req.body;
 
   try {
