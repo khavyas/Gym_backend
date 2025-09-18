@@ -69,3 +69,33 @@ exports.loginUser = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// @desc Change user password (no authentication, just updates)
+// @route PUT /api/auth/change-password
+exports.changePassword = async (req, res) => {
+  const { userId, newPassword } = req.body;
+
+  try {
+    if (!userId || !newPassword) {
+      return res.status(400).json({ message: "userId and newPassword are required" });
+    }
+
+    // Find user
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Hash new password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    // Update password
+    user.password = hashedPassword;
+    await user.save();
+
+    res.status(200).json({ message: "Password changed successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
