@@ -33,3 +33,23 @@ exports.getConsultantById = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+// @desc Update consultant profile (for logged-in consultant)
+exports.updateConsultant = async (req, res) => {
+  try {
+    const consultant = await Consultant.findOneAndUpdate(
+      { user: req.user._id },  // find consultant linked to logged-in user
+      { ...req.body },         // update fields from request body
+      { new: true, runValidators: true }
+    );
+
+    if (!consultant) {
+      return res.status(404).json({ message: "Consultant profile not found" });
+    }
+
+    res.json(consultant);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
