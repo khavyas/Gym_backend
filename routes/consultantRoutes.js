@@ -1,15 +1,12 @@
-const express = require('express');
-const {
-  createConsultant,
-  getConsultants,
-  getConsultantById,
-} = require('../controllers/consultantController');
-const { protect } = require('../middleware/authMiddleware');
+const express = require("express");
+const { protect } = require("../middleware/authMiddleware");
+const { createConsultant, getConsultants, getConsultantById, updateConsultant } = require("../controllers/consultantController");
 
 const router = express.Router();
 
-router.post('/', protect, createConsultant);   // consultants can create profile
-router.get('/', getConsultants);              // list all consultants
-router.get('/:id', getConsultantById);        // single consultant profile
+router.post("/", protect, createConsultant);
+router.get("/", getConsultants);
+router.get("/:id", getConsultantById);
+router.put("/", protect, updateConsultant);  
 
 module.exports = router;
