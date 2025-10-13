@@ -99,3 +99,15 @@ exports.changePassword = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+
+// @desc Check if email exists
+exports.checkEmail = async (req, res) => {
+  const { email } = req.body;
+  try {
+    const user = await User.findOne({ email });
+    res.json({ exists: !!user });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
