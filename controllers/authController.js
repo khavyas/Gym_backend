@@ -2,6 +2,7 @@ const User = require('../models/User');
 const Profile = require('../models/Profile'); // <-- import Profile model
 const bcrypt = require('bcryptjs');
 const generateToken = require('../utils/generateToken');
+const sendEmail = require('../utils/sendEmail'); // you'll create this next
 
 // @desc Register new user
 exports.registerUser = async (req, res) => {
@@ -109,5 +110,48 @@ exports.checkEmail = async (req, res) => {
     res.json({ exists: !!user });
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc Send OTP for password reset
+// @route POST /api/auth/send-reset-email
+exports.sendResetEmail = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    if (!user) {
+      return res.status(404).json({ success: false, message: "Email not registered" });
+    }
+
+    // Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Save OTP and expiry (10 min)
+    user.resetOtp = otp;
+    user.resetOtpExpiry = Date.now() + 10 * 60 * 1000; // 10 minutes
+    await user.save();
+
+    // Send email (using nodemailer or similar)
+    await sendEmail({
+      to: user.email,
+      subject: "Your Password Reset OTP",
+      html: `
+        <h3>Hi ${user.name || "User"},</h3>
+        <p>Your password reset OTP is:</p>
+        <h2>${otp}</h2>
+        <p>This OTP will expire in 10 minutes.</p>
+        <p>If you didn’t request this, please ignore this email.</p>
+      `
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "OTP sent successfully. Please check your email."
+    });
+
+  } catch (error) {
+    console.error("Error in sendResetEmail:", error);
+    res.status(500).json({ success: false, message: "Server error sending reset email." });
   }
 };
