@@ -12,7 +12,7 @@ router.post("/send-reset-email", sendResetEmail);
 router.get('/test-email', async (req, res) => {
   try {
     await sendEmail({
-      to: "khavyasakthi1@gmail.com",
+      to: "khavyameenu@gmail.com",
       subject: "Test Email",
       html: "<h1>Hello from Gym App!</h1>"
     });
