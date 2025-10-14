@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { registerUser, loginUser, changePassword, checkEmail , sendResetEmail} = require("../controllers/authController");
+const { registerUser, loginUser, changePassword, checkEmail , sendResetEmail, verifyOtp } = require("../controllers/authController");
 const sendEmail = require('../utils/sendEmail');
 
 router.post('/register', registerUser);
@@ -8,7 +8,7 @@ router.post('/login', loginUser);
 router.post('/change-password', changePassword);
 router.post('/check-email', checkEmail);
 router.post("/send-reset-email", sendResetEmail);
-router.post('/verify-otp', authController.verifyOtp);
+router.post('/verify-otp', verifyOtp);
 
 router.get('/test-email', async (req, res) => {
   try {
