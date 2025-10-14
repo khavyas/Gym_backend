@@ -119,12 +119,16 @@ exports.sendResetEmail = async (req, res) => {
   const { email } = req.body;
 
   try {
+    if (!email) {
+      return res.status(400).json({ success: false, message: "Email is required" });
+    }
+
     const user = await User.findOne({ email: email.toLowerCase().trim() });
     if (!user) {
       return res.status(404).json({ success: false, message: "Email not registered" });
     }
 
-    // Generate 6-digit OTP
+    // Generate a 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
     // Save OTP and expiry (10 min)
@@ -132,7 +136,7 @@ exports.sendResetEmail = async (req, res) => {
     user.resetOtpExpiry = Date.now() + 10 * 60 * 1000; // 10 minutes
     await user.save();
 
-    // Send email (using nodemailer or similar)
+    // Send email using your verified sender (from .env)
     await sendEmail({
       to: user.email,
       subject: "Your Password Reset OTP",
@@ -142,14 +146,13 @@ exports.sendResetEmail = async (req, res) => {
         <h2>${otp}</h2>
         <p>This OTP will expire in 10 minutes.</p>
         <p>If you didn’t request this, please ignore this email.</p>
-      `
+      `,
     });
 
     res.status(200).json({
       success: true,
-      message: "OTP sent successfully. Please check your email."
+      message: "OTP sent successfully. Please check your email.",
     });
-
   } catch (error) {
     console.error("Error in sendResetEmail:", error);
     res.status(500).json({ success: false, message: "Server error sending reset email." });
