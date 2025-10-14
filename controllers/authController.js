@@ -231,3 +231,75 @@ exports.verifyOtp = async (req, res) => {
     });
   }
 };
+
+// @desc Reset password after OTP verification
+// @route POST /api/auth/reset-password
+exports.resetPassword = async (req, res) => {
+  const { email, newPassword, confirmPassword } = req.body;
+
+  try {
+    // Validate inputs
+    if (!email || !newPassword || !confirmPassword) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Email, new password, and confirm password are required" 
+      });
+    }
+
+    // Validate passwords match
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Passwords do not match" 
+      });
+    }
+
+    // Validate password strength (optional but recommended)
+    if (newPassword.length < 6) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Password must be at least 6 characters long" 
+      });
+    }
+
+    // Find user
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    if (!user) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "User not found" 
+      });
+    }
+
+    // Hash new password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    // Update password
+    user.password = hashedPassword;
+    await user.save();
+
+    // Send confirmation email (optional)
+    await sendEmail({
+      to: user.email,
+      subject: "Password Reset Successfully",
+      html: `
+        <h3>Hi ${user.name || "User"},</h3>
+        <p>Your password has been reset successfully.</p>
+        <p>If you didn't do this, please contact support immediately.</p>
+      `,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Password reset successfully. You can now login with your new password."
+    });
+
+  } catch (error) {
+    console.error("Error in resetPassword:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Server error resetting password." 
+    });
+  }
+};
