@@ -8,6 +8,7 @@ router.post('/login', loginUser);
 router.post('/change-password', changePassword);
 router.post('/check-email', checkEmail);
 router.post("/send-reset-email", sendResetEmail);
+router.post('/verify-otp', authController.verifyOtp);
 
 router.get('/test-email', async (req, res) => {
   try {

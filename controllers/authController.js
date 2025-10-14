@@ -158,3 +158,76 @@ exports.sendResetEmail = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error sending reset email." });
   }
 };
+
+// @desc Verify OTP for password reset
+// @route POST /api/auth/verify-otp
+exports.verifyOtp = async (req, res) => {
+  const { email, otp } = req.body;
+
+  try {
+    // Validate inputs
+    if (!email || !otp) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Email and OTP are required" 
+      });
+    }
+
+    // Find user
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    if (!user) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "User not found" 
+      });
+    }
+
+    // Check if OTP exists
+    if (!user.resetOtp) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "No OTP requested. Please request a new one." 
+      });
+    }
+
+    // Check if OTP has expired
+    if (Date.now() > user.resetOtpExpiry) {
+      // Clear expired OTP
+      user.resetOtp = null;
+      user.resetOtpExpiry = null;
+      await user.save();
+
+      return res.status(400).json({ 
+        success: false, 
+        message: "OTP has expired. Please request a new one." 
+      });
+    }
+
+    // Verify OTP
+    if (user.resetOtp !== otp.toString()) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Invalid OTP. Please try again." 
+      });
+    }
+
+    // OTP is valid - clear it from DB (one-time use)
+    user.resetOtp = null;
+    user.resetOtpExpiry = null;
+    await user.save();
+
+    // Return success response
+    res.status(200).json({
+      success: true,
+      message: "OTP verified successfully. You can now reset your password.",
+      userId: user._id,
+    });
+
+  } catch (error) {
+    console.error("Error in verifyOtp:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Server error verifying OTP." 
+    });
+  }
+};
