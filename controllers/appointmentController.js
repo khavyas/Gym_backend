@@ -13,7 +13,7 @@ const canModify = (reqUser, appointment) => {
   return false;
 };
 
-// Create appointment
+// controllers/appointmentController.js (replace createAppointment)
 exports.createAppointment = async (req, res) => {
   try {
     const { consultant: consultantId, startAt, endAt, title, notes, mode, location, price } = req.body;
@@ -22,14 +22,57 @@ exports.createAppointment = async (req, res) => {
       return res.status(400).json({ message: 'consultant and startAt are required' });
     }
 
+    // validate consultant exists
     const consultant = await Consultant.findById(consultantId);
     if (!consultant) return res.status(404).json({ message: 'Consultant not found' });
 
+    // normalize start/end as Date objects
+    const start = new Date(startAt);
+    if (isNaN(start.getTime())) return res.status(400).json({ message: 'Invalid startAt' });
+
+    const end = endAt ? new Date(endAt) : new Date(start.getTime() + 30 * 60 * 1000); // default 30 min
+    if (isNaN(end.getTime())) return res.status(400).json({ message: 'Invalid endAt' });
+    if (end <= start) return res.status(400).json({ message: 'endAt must be after startAt' });
+
+    // 1) Exact duplicate: same user + same consultant + same start time
+    const exactDuplicate = await Appointment.findOne({
+      user: req.user._id,
+      consultant: consultantId,
+      startAt: start,
+    });
+    if (exactDuplicate) {
+      return res.status(409).json({ message: 'You already have a booking for this timeslot' });
+    }
+
+    // 2) Overlap check for consultant:
+    // find any appointment for the consultant that overlaps the requested window
+    // consider statuses that block the slot
+    const blockingStatuses = ['pending', 'confirmed', 'rescheduled'];
+    const overlap = await Appointment.findOne({
+      consultant: consultantId,
+      status: { $in: blockingStatuses },
+      $or: [
+        // existing.start < new.end && existing.end > new.start  (overlap)
+        { startAt: { $lt: end }, endAt: { $gt: start } },
+        // existing.start inside new range
+        { startAt: { $gte: start, $lt: end } }
+      ],
+    });
+
+    if (overlap) {
+      // If overlap exists and is by the same user, give a specific message
+      if (String(overlap.user) === String(req.user._id)) {
+        return res.status(409).json({ message: 'You already have an overlapping appointment at this time' });
+      }
+      return res.status(409).json({ message: 'Selected timeslot is already booked' });
+    }
+
+    // All clear — create appointment
     const appt = await Appointment.create({
       user: req.user._id,
       consultant: new mongoose.Types.ObjectId(consultantId),
-      startAt: new Date(startAt),
-      endAt: endAt ? new Date(endAt) : undefined,
+      startAt: start,
+      endAt: end,
       title,
       notes,
       mode: mode || consultant.modeOfTraining || 'online',
@@ -43,12 +86,13 @@ exports.createAppointment = async (req, res) => {
       .populate('user', 'name email')
       .populate('consultant', 'name specialty contact');
 
-    res.status(201).json(populated);
+    return res.status(201).json(populated);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: err.message });
+    console.error('createAppointment error:', err);
+    return res.status(500).json({ message: err.message || 'Server error' });
   }
 };
+
 
 // Get appointments (filters: userId, consultantId, status, from, to)
 exports.getAppointments = async (req, res) => {
