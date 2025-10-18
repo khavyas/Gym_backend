@@ -27,7 +27,7 @@ exports.createAppointment = async (req, res) => {
 
     const appt = await Appointment.create({
       user: req.user._id,
-      consultant: mongoose.Types.ObjectId(consultantId),
+      consultant: new mongoose.Types.ObjectId(consultantId),
       startAt: new Date(startAt),
       endAt: endAt ? new Date(endAt) : undefined,
       title,
