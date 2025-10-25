@@ -7,76 +7,171 @@ const MAX_OTP_ATTEMPTS = 5;
 const OTP_RESEND_COOLDOWN_MS = 60000; // 1 min cooldown
 // const sendMail = require('../utils/sendMail'); // Uncomment when using email
 
+// ============================================
+// NEW USER REGISTRATION (Step 1: Send OTP)
+// ============================================
 exports.registerUser = async (req, res) => {
   console.log("Incoming registration body:", req.body);
-  const { name, age, phone, email, password, role, consent, privacyNoticeAccepted, aadharNumber, abhaId, ...rest } = req.body;
+  const { phone, email, consent, privacyNoticeAccepted, oauthProvider } = req.body;
+
   try {
-    // Check for consent and privacy acceptance
+    // Validate consent and privacy
     if (!consent) {
       return res.status(400).json({ message: "Consent is required as per Indian standards/ABDM." });
     }
     if (!privacyNoticeAccepted) {
       return res.status(400).json({ message: "Privacy notice must be accepted." });
     }
-    if (!email && !phone) return res.status(400).json({ message: "Either email or phone is required" });
-    // Only require password if not OAuth
-    if (!req.body.oauthProvider && !password) return res.status(400).json({ message: "Password is required unless using OAuth login." });
+    if (!email && !phone) {
+      return res.status(400).json({ message: "Either email or phone is required" });
+    }
 
-    // Build filter only for non-empty supplied fields
+    // Check if user already exists
     let filters = [];
     if (email) filters.push({ email });
     if (phone) filters.push({ phone });
-
-    // Only check if any value is supplied
     if (filters.length > 0) {
       const userExists = await User.findOne({ $or: filters });
-      if (userExists)
+      if (userExists) {
         return res.status(400).json({ message: 'User already exists' });
+      }
     }
 
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    // OAuth flow: instant registration
+    if (oauthProvider) {
+      const user = await User.create({
+        phone, email, consent, privacyNoticeAccepted, oauthProvider, isVerified: true
+      });
+      return res.status(201).json({
+        success: true,
+        userId: user._id,
+        token: generateToken(user._id),
+        message: "OAuth registration successful"
+      });
+    }
 
-    const user = await User.create({
-      name, age, phone, email, password: hashedPassword, role, consent, privacyNoticeAccepted, aadharNumber, abhaId, ...rest
+    // OTP flow: Generate and send OTP (DO NOT create user yet)
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    // Store OTP in database
+    await Otp.create({ otp, email, phone });
+
+    // Send OTP via SMS/Email (mocked for dev)
+    // await sendSMS(phone, `Your OTP is ${otp}`);
+    // await sendMail(email, `Your OTP is ${otp}`);
+
+    return res.status(200).json({
+      success: true,
+      message: "OTP sent for verification. Please verify to complete registration.",
+      otp // Remove in production!
     });
 
-    //await Profile.create({ userId: user._id, fullName: name, email: email, phone: phone });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 
-    res.status(201).json({
+// ============================================
+// VERIFY OTP AND CREATE USER (Step 2)
+// ============================================
+exports.verifyOtpAndRegister = async (req, res) => {
+  const { phone, email, otp, name, age, role, aadharNumber, abhaId, password } = req.body;
+
+  try {
+    // Find OTP record in database
+    const otpRecord = await Otp.findOne({
+      $or: [{ email }, { phone }],
+      otp
+    });
+
+    if (!otpRecord) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Invalid or expired OTP" 
+      });
+    }
+
+    // Check if user already exists (safety check)
+    let filters = [];
+    if (email) filters.push({ email });
+    if (phone) filters.push({ phone });
+    const userExists = await User.findOne({ $or: filters });
+    if (userExists) {
+      return res.status(400).json({ message: 'User already registered' });
+    }
+
+    // Build user data
+    const userData = {
+      name,
+      age,
+      phone,
+      email,
+      role: role || 'user',
+      consent: true, // Already validated during /register
+      privacyNoticeAccepted: true,
+      aadharNumber,
+      abhaId,
+      isVerified: true // Mark as verified since OTP is confirmed
+    };
+
+    // If password provided, hash it
+    if (password) {
+      const salt = await bcrypt.genSalt(10);
+      userData.password = await bcrypt.hash(password, salt);
+    }
+
+    // NOW create the user (after OTP verification)
+    const user = await User.create(userData);
+
+    // Delete OTP record after successful verification
+    await Otp.deleteOne({ _id: otpRecord._id });
+
+    return res.status(201).json({
+      success: true,
+      message: "Registration successful",
       userId: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      token: generateToken(user._id),
+      token: generateToken(user._id)
+    });
+
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ============================================
+// UTILITY FUNCTIONS - Mask Sensitive Info
+// ============================================
+function maskAadhaar(aadhaar) {
+  return aadhaar ? "XXXX-XXXX-" + aadhaar.slice(-4) : undefined;
+}
+
+function maskAbha(abha) {
+  return abha ? abha.substring(0, 3) + "XXXXXX" + abha.slice(-3) : undefined;
+}
+
+// ============================================
+// GET USER PROFILE (with masking)
+// ============================================
+exports.getUserProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+    
+    res.json({
+      ...user.toObject(),
+      aadharNumber: maskAadhaar(user.aadharNumber),
+      abhaId: maskAbha(user.abhaId),
+      phone: user.phone ? "XXXXXX" + user.phone.slice(-4) : undefined,
+      password: undefined // never expose!
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// Utility functions to mask sensitive info
-function maskAadhaar(aadhaar) {
-  return aadhaar ? "XXXX-XXXX-" + aadhaar.slice(-4) : undefined;
-}
-function maskAbha(abha) {
-  return abha ? abha.substring(0, 3) + "XXXXXX" + abha.slice(-3) : undefined;
-}
-
-// Example user profile endpoint with masking
-exports.getUserProfile = async (req, res) => {
-  const user = await User.findById(req.user._id);
-  if (!user) return res.status(404).json({ message: "User not found" });
-  res.json({
-    ...user.toObject(),
-    aadharNumber: maskAadhaar(user.aadharNumber),
-    abhaId: maskAbha(user.abhaId),
-    phone: user.phone ? "XXXXXX" + user.phone.slice(-4) : undefined,
-    password: undefined // never expose!
-  });
-};
-
-
+// ============================================
+// LOGIN USER
+// ============================================
 exports.loginUser = async (req, res) => {
   const { email, password } = req.body;
   try {
@@ -104,7 +199,11 @@ exports.changePassword = async (req, res) => {
       return res.status(400).json({ message: "userId and newPassword are required" });
     }
     const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ message: "User not found" });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    
+    // Hash new password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(newPassword, salt);
     user.password = hashedPassword;
