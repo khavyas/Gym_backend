@@ -1,27 +1,19 @@
 const express = require("express");
 const router = express.Router();
-const { registerUser, loginUser, changePassword, checkEmail , sendResetEmail, verifyOtp, resetPassword } = require("../controllers/authController");
-const sendEmail = require('../utils/sendEmail');
+const {
+  registerUser,
+  loginUser,
+  changePassword,
+  sendOtp,
+  confirmOtp,
+  verifyEmail
+} = require("../controllers/authController");
 
-router.post('/register', registerUser);
-router.post('/login', loginUser);
-router.post('/change-password', changePassword);
-router.post('/check-email', checkEmail);
-router.post("/send-reset-email", sendResetEmail);
-router.post('/verify-otp', verifyOtp);
-router.post('/reset-password', resetPassword);
-
-router.get('/test-email', async (req, res) => {
-  try {
-    await sendEmail({
-      to: "khavyameenu@gmail.com",
-      subject: "Test Email",
-      html: "<h1>Hello from Gym App!</h1>"
-    });
-    res.json({ success: true, message: "Email sent successfully!" });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
+router.post("/register", registerUser);
+router.post("/login", loginUser);
+router.put("/change-password", changePassword);
+router.post("/send-otp", sendOtp);
+router.post("/confirm-otp", confirmOtp);
+router.post("/verify-email", verifyEmail);
 
 module.exports = router;

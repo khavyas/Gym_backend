@@ -17,8 +17,19 @@ const gymCenterSchema = mongoose.Schema(
       ref: 'User',
       required: true, 
     },
+    location: {
+      type: { type: String, enum: ['Point'], default: 'Point' },
+      coordinates: { type: [Number], required: true }, // [longitude, latitude]
+    },
+    // Example filter fields, adjust as needed:
+    amenities: [String],
+    price: Number,
+    rating: Number
   },
   { timestamps: true }
 );
+
+// Add 2dsphere index for geospatial search
+gymCenterSchema.index({ location: '2dsphere' });
 
 module.exports = mongoose.model('GymCenter', gymCenterSchema);

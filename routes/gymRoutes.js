@@ -6,6 +6,7 @@ const {
   getGymById,
   updateGym,
   deleteGym,
+  getNearbyGyms
 } = require('../controllers/gymController');
 
 const router = express.Router();
@@ -13,6 +14,9 @@ const router = express.Router();
 router.route('/')
   .get(getGyms)
   .post(protect, createGym);
+
+// NEW Route for discovery/search
+router.get('/nearby', getNearbyGyms); 
 
 router.route('/:id')
   .get(getGymById)

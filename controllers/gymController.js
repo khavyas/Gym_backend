@@ -13,7 +13,8 @@ exports.createGym = async (req, res) => {
       return res.status(403).json({ message: 'Only superadmin can create gyms' });
     }
 
-    const { name, address, phone, email, adminName, adminEmail, adminPassword } = req.body;
+
+    const { name, address, phone, email, adminName, adminEmail, adminPassword, location, amenities, price, rating } = req.body;
 
     // 1️⃣ Check if admin email already exists
     const existingAdmin = await User.findOne({ email: adminEmail });
@@ -40,6 +41,10 @@ exports.createGym = async (req, res) => {
       phone,
       email,
       admin: adminUser._id,
+      location: location, 
+      amenities: amenities,
+      price: price,
+      rating: rating
     });
 
     res.status(201).json({
@@ -134,3 +139,35 @@ exports.deleteGym = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// ===============================
+// @desc    Get gyms near location with filters
+// @route   GET /api/gyms/nearby?lat=..&lng=..&radius=..&amenities=wifi,pool
+// @access  Public
+exports.getNearbyGyms = async (req, res) => {
+  try {
+    const { lat, lng, radius = 5000, amenities, minPrice, maxPrice } = req.query;
+    if (!lat || !lng) return res.status(400).json({ error: "Location required" });
+
+    let filter = {
+      location: {
+        $near: {
+          $geometry: { type: "Point", coordinates: [parseFloat(lng), parseFloat(lat)] },
+          $maxDistance: parseInt(radius)
+        }
+      }
+    };
+
+    if (amenities) filter.amenities = { $all: amenities.split(',') };
+    if (minPrice || maxPrice) filter.price = {};
+    if (minPrice) filter.price.$gte = parseFloat(minPrice);
+    if (maxPrice) filter.price.$lte = parseFloat(maxPrice);
+
+    const gyms = await GymCenter.find(filter).populate('admin', 'name email').limit(50);
+    res.json(gyms);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+

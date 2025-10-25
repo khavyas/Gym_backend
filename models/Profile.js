@@ -11,18 +11,19 @@ const profileSchema = new mongoose.Schema(
     },
     fullName: {
       type: String,
-      required: true,
+      required: false,
       immutable: true,
     },
     email: {
       type: String,
-      required: true,
       unique: true,
       immutable: true,
     },
     phone: { type: String },
     bio: { type: String },
     profileImage: { type: String },
+    aadharNumber: { type: String, minlength: 12, maxlength: 12, match: /^[0-9]{12}$/ },
+    abhaId: { type: String }, // Optional: For ABDM/NDHM Health ID
 
     healthMetrics: {
       weight: String,
@@ -52,8 +53,30 @@ const profileSchema = new mongoose.Schema(
       biometricLogin: { type: Boolean, default: false },
       twoFactorAuth: { type: Boolean, default: false },
     },
+
+    address: {
+      street: { type: String },
+      city: { type: String },
+      state: { type: String },
+      pincode: { type: String }
+    },
+
+    lastlogin: { type: Date },                    //for activity tracking
+    logincount: { type: Number, default: 0 },     //Analytics
+    membershipStatus: { type: String, enum: ["active", "trial", "suspended"], default: "active" }, //Membership management
+    badgeCount: { type: Number, default: 0 }, //Gamification
+    achievements: [String], //Gamification
+    referralCode: { type: String, unique: true, sparse: true }, //Referral system
   },
   { timestamps: true }
 );
+
+// Custom validator to require either email or phone
+profileSchema.pre('validate', function(next) {
+  if (!this.email && !this.phone) {
+    next(new Error('Either email or phone is required'));
+  }
+  next();
+});
 
 module.exports = mongoose.model("Profile", profileSchema);
