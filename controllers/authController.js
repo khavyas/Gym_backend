@@ -205,9 +205,9 @@ exports.loginUser = async (req, res) => {
     } else if (identifier) {
       const trimmedIdentifier = identifier.trim();
       if (/^\d+$/.test(trimmedIdentifier)) {
-        query.phone = trimmedIdentifier; // all digits ⇒ phone
+        query.phone = trimmedIdentifier;
       } else {
-        query.email = trimmedIdentifier.toLowerCase(); // otherwise ⇒ email
+        query.email = trimmedIdentifier.toLowerCase();
       }
     } else {
       return res.status(400).json({ 
@@ -215,22 +215,48 @@ exports.loginUser = async (req, res) => {
       });
     }
 
-    console.log("Login query:", query); // ✅ Add logging for debugging
+    console.log("=== LOGIN DEBUG ===");
+    console.log("Login query:", query);
+    console.log("Password from request:", password);
 
     // Find user by either field
     const user = await User.findOne(query);
     
     if (!user) {
-      console.log("User not found with query:", query);
+      console.log("❌ User not found with query:", query);
+      
+      // DEBUG: Check what's actually in the database
+      const allUsers = await User.find({}).select('email phone name');
+      console.log("All users in DB:", allUsers);
+      
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    
-    if (!isPasswordValid) {
-      console.log("Password mismatch for user:", user.email || user.phone);
+    console.log("✅ User found:", {
+      id: user._id,
+      email: user.email,
+      phone: user.phone,
+      name: user.name,
+      hasPassword: !!user.password
+    });
+
+    // Check if password exists
+    if (!user.password) {
+      console.log("❌ User has no password set");
       return res.status(401).json({ message: "Invalid credentials" });
     }
+
+    console.log("Stored password hash:", user.password);
+    
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    console.log("Password valid:", isPasswordValid);
+    
+    if (!isPasswordValid) {
+      console.log("❌ Password mismatch for user:", user.email || user.phone);
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    console.log("✅ Login successful");
 
     return res.json({
       userId: user._id,
