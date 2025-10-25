@@ -11,14 +11,14 @@ const userSchema = new mongoose.Schema(
       type: String, 
       unique: true, 
       sparse: true,
-      trim: true
+      trim: true 
     },
     email: { 
       type: String, 
       unique: true, 
       sparse: true,
       lowercase: true,
-      trim: true
+      trim: true 
     },
     password: { 
       type: String,
@@ -34,7 +34,7 @@ const userSchema = new mongoose.Schema(
       minlength: 12, 
       maxlength: 12, 
       match: /^[0-9]{12}$/, 
-      required: false
+      required: false 
     },
     abhaId: { type: String, required: false },
     address: {
@@ -63,15 +63,20 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Encryption keys (store in .env in production!)
-const encKey = process.env.MONGO_ENCRYPT_KEY;  // 32 bytes base64
-const sigKey = process.env.MONGO_SIGN_KEY;     // 64 bytes base64
+// ✅ ONLY apply encryption if keys are provided
+const encKey = process.env.MONGO_ENCRYPT_KEY;
+const sigKey = process.env.MONGO_SIGN_KEY;
 
-userSchema.plugin(encrypt, {
-  encryptionKey: encKey,
-  signingKey: sigKey,
-  encryptedFields: ['aadharNumber', 'abhaId']
-});
+if (encKey && sigKey) {
+  console.log('✅ Encryption enabled for sensitive fields');
+  userSchema.plugin(encrypt, {
+    encryptionKey: encKey,
+    signingKey: sigKey,
+    encryptedFields: ['aadharNumber', 'abhaId']
+  });
+} else {
+  console.warn('⚠️  WARNING: Encryption keys not found. Sensitive data will NOT be encrypted!');
+}
 
 // Validator: Check that at least one exists (email or phone)
 userSchema.pre('validate', function(next) {
@@ -82,4 +87,4 @@ userSchema.pre('validate', function(next) {
   next();
 });
 
-module.exports = mongoose.model('User', userSchema);  
+module.exports = mongoose.model('User', userSchema);
