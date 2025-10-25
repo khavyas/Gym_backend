@@ -11,19 +11,18 @@ const userSchema = new mongoose.Schema(
       type: String, 
       unique: true, 
       sparse: true,
-      trim: true  // ✅ Add trim
+      trim: true
     },
     email: { 
       type: String, 
       unique: true, 
       sparse: true,
-      lowercase: true,  // ✅ Add lowercase
-      trim: true        // ✅ Add trim
+      lowercase: true,
+      trim: true
     },
     password: { 
       type: String,
       required: function() {
-        // Password required unless using OAuth
         return !this.oauthProvider;
       }
     },
@@ -74,7 +73,7 @@ userSchema.plugin(encrypt, {
   encryptedFields: ['aadharNumber', 'abhaId']
 });
 
-// ✅ BETTER validator: Check that at least one exists
+// Validator: Check that at least one exists (email or phone)
 userSchema.pre('validate', function(next) {
   if (!this.email && !this.phone) {
     this.invalidate('email', 'Either email or phone is required');
@@ -83,4 +82,4 @@ userSchema.pre('validate', function(next) {
   next();
 });
 
-module.exports = mongoose.Model('User', userSchema);
+module.exports = mongoose.model('User', userSchema);  
