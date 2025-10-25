@@ -7,30 +7,56 @@ const userSchema = new mongoose.Schema(
     age: { type: Number },
     gender: { type: String, enum: ["male", "female", "other"], required: false },
     dateOfBirth: { type: Date },
-    phone: { type: String, unique: true, sparse: true },
-    email: { type: String, unique: true, sparse: true },
-    password: { type: String },
+    phone: { 
+      type: String, 
+      unique: true, 
+      sparse: true,
+      trim: true  // ✅ Add trim
+    },
+    email: { 
+      type: String, 
+      unique: true, 
+      sparse: true,
+      lowercase: true,  // ✅ Add lowercase
+      trim: true        // ✅ Add trim
+    },
+    password: { 
+      type: String,
+      required: function() {
+        // Password required unless using OAuth
+        return !this.oauthProvider;
+      }
+    },
     otp: { type: String },
-    otpAttempts: { type: Number, default: 0 }, //For throttling OTP attempts
-    otpLastSent: { type: Date }, //For controlling resend timer
-    aadharNumber: { type: String, minlength: 12, maxlength: 12, match: /^[0-9]{12}$/, required: false},
-    abhaId: { type: String, required: false }, // Optional: For ABDM/NDHM Health ID
+    otpAttempts: { type: Number, default: 0 },
+    otpLastSent: { type: Date },
+    aadharNumber: { 
+      type: String, 
+      minlength: 12, 
+      maxlength: 12, 
+      match: /^[0-9]{12}$/, 
+      required: false
+    },
+    abhaId: { type: String, required: false },
     address: {
       street: { type: String },
       city: { type: String },
       state: { type: String },
       pincode: { type: String }
     },
-    consent: { type: Boolean, required: true }, // ABDM-style consent
+    consent: { type: Boolean, required: true },
     privacyNoticeAccepted: { type: Boolean, required: true },
     emailVerified: { type: Boolean, default: false },
     phoneVerified: { type: Boolean, default: false },
-    oauthProvider: { type: String, enum: ["google", "facebook", "apple"] }, // for Social Login
-    oauthId: { type: String },
-    role: { 
+    oauthProvider: { 
       type: String, 
-      enum: ['user', 'admin', 'consultant', 'superadmin'], 
-      default: 'user' 
+      enum: ["google", "facebook", "apple"] 
+    },
+    oauthId: { type: String },
+    role: {
+      type: String,
+      enum: ['user', 'admin', 'consultant', 'superadmin'],
+      default: 'user'
     },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     lastModifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
@@ -48,14 +74,13 @@ userSchema.plugin(encrypt, {
   encryptedFields: ['aadharNumber', 'abhaId']
 });
 
-// Custom validator to require either phone or email
-userSchema.path('email').validate(function(value) {
-  return value || this.phone;
-}, 'Either email or phone is required.');
+// ✅ BETTER validator: Check that at least one exists
+userSchema.pre('validate', function(next) {
+  if (!this.email && !this.phone) {
+    this.invalidate('email', 'Either email or phone is required');
+    this.invalidate('phone', 'Either email or phone is required');
+  }
+  next();
+});
 
-userSchema.path('phone').validate(function(value) {
-  return value || this.email;
-}, 'Either phone or email is required.');
-
-module.exports = mongoose.model('User', userSchema);
-
+module.exports = mongoose.Model('User', userSchema);
