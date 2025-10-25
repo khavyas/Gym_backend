@@ -10,6 +10,7 @@ const cors = require("cors");
 const gymRoutes = require('./routes/gymRoutes');
 const appointmentRoutes = require('./routes/appointmentRoutes');
 
+
 dotenv.config();
 connectDB();
 
