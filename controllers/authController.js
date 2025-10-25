@@ -78,24 +78,38 @@ exports.getUserProfile = async (req, res) => {
 
 
 exports.loginUser = async (req, res) => {
-  const { email, password } = req.body;
+  const { email, phone, password, identifier } = req.body; 
   try {
-    const user = await User.findOne({ email });
+    // Decide what the user entered: email or phone
+    const query = {};
+    if (email) query.email = email;
+    else if (phone) query.phone = phone;
+    else if (identifier) {
+      if (/^\d+$/.test(identifier)) query.phone = identifier; // all digits ⇒ phone
+      else query.email = identifier.toLowerCase(); // otherwise ⇒ email
+    } else {
+      return res.status(400).json({ message: "Email or phone is required" });
+    }
+
+    // Find user by either field
+    const user = await User.findOne(query);
     if (user && (await bcrypt.compare(password, user.password))) {
-      res.json({
+      return res.json({
         userId: user._id,
         name: user.name,
         email: user.email,
+        phone: user.phone,
         role: user.role,
         token: generateToken(user._id),
       });
-    } else {
-      res.status(401).json({ message: 'Invalid Email or Password' });
     }
+
+    res.status(401).json({ message: "Invalid credentials" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
+
 
 exports.changePassword = async (req, res) => {
   const { userId, newPassword } = req.body;
