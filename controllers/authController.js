@@ -12,24 +12,48 @@ const OTP_RESEND_COOLDOWN_MS = 60000; // 1 min cooldown
 // ============================================
 exports.registerUser = async (req, res) => {
   console.log("Incoming registration body:", req.body);
-  const { phone, email, consent, privacyNoticeAccepted, oauthProvider } = req.body;
+  
+  const { 
+    name, age, phone, email, password, role, 
+    consent, privacyNoticeAccepted, aadharNumber, abhaId, ...rest 
+  } = req.body;
 
   try {
-    // Validate consent and privacy
+    // Check for consent and privacy acceptance
     if (!consent) {
-      return res.status(400).json({ message: "Consent is required as per Indian standards/ABDM." });
+      return res.status(400).json({ 
+        message: "Consent is required as per Indian standards/ABDM." 
+      });
     }
+    
     if (!privacyNoticeAccepted) {
-      return res.status(400).json({ message: "Privacy notice must be accepted." });
-    }
-    if (!email && !phone) {
-      return res.status(400).json({ message: "Either email or phone is required" });
+      return res.status(400).json({ 
+        message: "Privacy notice must be accepted." 
+      });
     }
 
-    // Check if user already exists
+    if (!email && !phone) {
+      return res.status(400).json({ 
+        message: "Either email or phone is required" 
+      });
+    }
+
+    // Only require password if not OAuth
+    if (!req.body.oauthProvider && !password) {
+      return res.status(400).json({ 
+        message: "Password is required unless using OAuth login." 
+      });
+    }
+
+    // ✅ NORMALIZE EMAIL TO LOWERCASE
+    const normalizedEmail = email ? email.toLowerCase().trim() : null;
+
+    // Build filter only for non-empty supplied fields
     let filters = [];
-    if (email) filters.push({ email });
-    if (phone) filters.push({ phone });
+    if (normalizedEmail) filters.push({ email: normalizedEmail });
+    if (phone) filters.push({ phone: phone.trim() });
+
+    // Only check if any value is supplied
     if (filters.length > 0) {
       const userExists = await User.findOne({ $or: filters });
       if (userExists) {
@@ -37,35 +61,30 @@ exports.registerUser = async (req, res) => {
       }
     }
 
-    // OAuth flow: instant registration
-    if (oauthProvider) {
-      const user = await User.create({
-        phone, email, consent, privacyNoticeAccepted, oauthProvider, isVerified: true
-      });
-      return res.status(201).json({
-        success: true,
-        userId: user._id,
-        token: generateToken(user._id),
-        message: "OAuth registration successful"
-      });
-    }
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
 
-    // OTP flow: Generate and send OTP (DO NOT create user yet)
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    
-    // Store OTP in database
-    await Otp.create({ otp, email, phone });
-
-    // Send OTP via SMS/Email (mocked for dev)
-    // await sendSMS(phone, `Your OTP is ${otp}`);
-    // await sendMail(email, `Your OTP is ${otp}`);
-
-    return res.status(200).json({
-      success: true,
-      message: "OTP sent for verification. Please verify to complete registration.",
-      otp // Remove in production!
+    const user = await User.create({
+      name,
+      age,
+      phone: phone ? phone.trim() : phone,
+      email: normalizedEmail, // ✅ Use normalized email
+      password: hashedPassword,
+      role,
+      consent,
+      privacyNoticeAccepted,
+      aadharNumber,
+      abhaId,
+      ...rest
     });
 
+    res.status(201).json({
+      userId: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      token: generateToken(user._id),
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -173,38 +192,60 @@ exports.getUserProfile = async (req, res) => {
 // LOGIN USER
 // ============================================
 exports.loginUser = async (req, res) => {
-  const { email, phone, password, identifier } = req.body; 
+  const { email, phone, password, identifier } = req.body;
+
   try {
     // Decide what the user entered: email or phone
     const query = {};
-    if (email) query.email = email;
-    else if (phone) query.phone = phone;
-    else if (identifier) {
-      if (/^\d+$/.test(identifier)) query.phone = identifier; // all digits ⇒ phone
-      else query.email = identifier.toLowerCase(); // otherwise ⇒ email
+    
+    if (email) {
+      query.email = email.toLowerCase().trim();
+    } else if (phone) {
+      query.phone = phone.trim();
+    } else if (identifier) {
+      const trimmedIdentifier = identifier.trim();
+      if (/^\d+$/.test(trimmedIdentifier)) {
+        query.phone = trimmedIdentifier; // all digits ⇒ phone
+      } else {
+        query.email = trimmedIdentifier.toLowerCase(); // otherwise ⇒ email
+      }
     } else {
-      return res.status(400).json({ message: "Email or phone is required" });
-    }
-
-    // Find user by either field
-    const user = await User.findOne(query);
-    if (user && (await bcrypt.compare(password, user.password))) {
-      return res.json({
-        userId: user._id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        role: user.role,
-        token: generateToken(user._id),
+      return res.status(400).json({ 
+        message: "Email or phone is required" 
       });
     }
 
-    res.status(401).json({ message: "Invalid credentials" });
+    console.log("Login query:", query); // ✅ Add logging for debugging
+
+    // Find user by either field
+    const user = await User.findOne(query);
+    
+    if (!user) {
+      console.log("User not found with query:", query);
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    
+    if (!isPasswordValid) {
+      console.log("Password mismatch for user:", user.email || user.phone);
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    return res.json({
+      userId: user._id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      role: user.role,
+      token: generateToken(user._id),
+    });
+
   } catch (error) {
+    console.error("Login error:", error);
     res.status(500).json({ message: error.message });
   }
 };
-
 
 exports.changePassword = async (req, res) => {
   const { userId, newPassword } = req.body;
