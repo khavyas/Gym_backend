@@ -9,31 +9,6 @@ const router = express.Router();
 
 /**
  * @swagger
- * components:
- *   schemas:
- *     User:
- *       type: object
- *       required:
- *         - name
- *         - email
- *         - password
- *       properties:
- *         name:
- *           type: string
- *           description: User's full name
- *         email:
- *           type: string
- *           description: User's email address
- *         password:
- *           type: string
- *           description: User's password
- *   responses:
- *     UnauthorizedError:
- *       description: Access token is missing or invalid
- */
-
-/**
- * @swagger
  * /api/auth/register/admin:
  *   post:
  *     tags: [Authentication]
@@ -60,7 +35,7 @@ const router = express.Router();
 router.post(
     '/register/admin',
     protect,
-    roleCheck('superadmin'),
+    roleCheck(['superadmin']),
     validateRequest(registerAdminDto),
     registerAdmin
 );
@@ -85,6 +60,9 @@ router.post(
  *                 type: string
  *               password:
  *                 type: string
+ *               role:
+ *                 type: enum
+ *                 enum: [user, consultant]
  *     responses:
  *       200:
  *         description: User successfully registered

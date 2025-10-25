@@ -22,16 +22,16 @@ export const protect = async (req, res, next) => {
   }
 };
 
-export const roleCheck = (requiredRole) => {
+export const roleCheck = (requiredRoles: string[]) => {
   return (req, res, next) => {
     console.log('User role:', req.user ? req.user.role : 'No user');
     if (!req.user) {
       return res.status(401).json({ message: 'Not authorized, no user found' });
     }
 
-    if (req.user.role !== requiredRole) {
+    if (!requiredRoles.includes(req.user.role)) {
       return res.status(403).json({
-        message: `Not authorized, ${requiredRole} role required`
+        message: `Not authorized, ${requiredRoles.join(', ')} roles required`
       });
     }
 

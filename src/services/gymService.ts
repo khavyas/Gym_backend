@@ -1,56 +1,26 @@
 import GymCenter from "../models/GymCenter";
 import User from "../models/User";
-import bcrypt from "bcrypt";
+import { CreateGymDto } from "../types/gym.dto";
 
 
 // @desc    Superadmin creates a gym and admin credentials
-export const createGym = async (req, res) => {
+export const createGym = async (gymDto: CreateGymDto, res) => {
   try {
-    console.log("👉 Incoming payload:", req.body);
-    console.log("👉 User making request:", req.user);
-
-    if (!req.user || req.user.role !== 'superadmin') {
-      return res.status(403).json({ message: 'Only superadmin can create gyms' });
-    }
-
-    const { name, address, phone, email, adminName, adminEmail, adminPassword } = req.body;
+    const { adminEmail, ...gymData } = gymDto;
 
     // 1️⃣ Check if admin email already exists
     const existingAdmin = await User.findOne({ email: adminEmail });
-    if (existingAdmin) {
-      return res.status(400).json({ message: 'Admin with this email already exists' });
+    if (!existingAdmin) {
+      return res.status(400).json({ message: 'Admin with this email does not exist' });
     }
 
-    // 2️⃣ Hash password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(adminPassword, salt);
-
-    // 3️⃣ Create admin user
-    const adminUser = await User.create({
-      name: adminName,
-      email: adminEmail,
-      password: hashedPassword,
-      role: 'admin',
-    });
-
     // 4️⃣ Create gym and link admin
-    const gym = await GymCenter.create({
-      name,
-      address,
-      phone,
-      email,
-      admin: adminUser._id,
-    });
+    const gym = await GymCenter.create({ ...gymData, admin: existingAdmin._id });
 
     res.status(201).json({
-      message: 'Gym and admin created successfully',
+      message: 'Gym created successfully',
       gym,
-      admin: {
-        _id: adminUser._id,
-        name: adminUser.name,
-        email: adminUser.email,
-        role: adminUser.role,
-      },
+      existingAdmin
     });
 
   } catch (error) {
@@ -61,8 +31,6 @@ export const createGym = async (req, res) => {
     });
   }
 };
-
-
 
 // @desc Get all gyms
 // @route GET /api/gyms
