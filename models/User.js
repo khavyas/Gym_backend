@@ -63,20 +63,20 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// ✅ ONLY apply encryption if keys are provided
-const encKey = process.env.MONGO_ENCRYPT_KEY;
-const sigKey = process.env.MONGO_SIGN_KEY;
+// // ✅ ONLY apply encryption if keys are provided
+// const encKey = process.env.MONGO_ENCRYPT_KEY;
+// const sigKey = process.env.MONGO_SIGN_KEY;
 
-if (encKey && sigKey) {
-  console.log('✅ Encryption enabled for sensitive fields');
-  userSchema.plugin(encrypt, {
-    encryptionKey: encKey,
-    signingKey: sigKey,
-    encryptedFields: ['aadharNumber', 'abhaId']
-  });
-} else {
-  console.warn('⚠️  WARNING: Encryption keys not found. Sensitive data will NOT be encrypted!');
-}
+// if (encKey && sigKey) {
+//   console.log('✅ Encryption enabled for sensitive fields');
+//   userSchema.plugin(encrypt, {
+//     encryptionKey: encKey,
+//     signingKey: sigKey,
+//     encryptedFields: ['aadharNumber', 'abhaId']
+//   });
+// } else {
+//   console.warn('⚠️  WARNING: Encryption keys not found. Sensitive data will NOT be encrypted!');
+// }
 
 // Validator: Check that at least one exists (email or phone)
 userSchema.pre('validate', function(next) {
