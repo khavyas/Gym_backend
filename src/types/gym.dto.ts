@@ -31,12 +31,10 @@ export const createGymDto = z.object({
         .min(1, 'Admin email is required')
         .toLowerCase()
         .trim(),
-    subscriptionPlan: z
-        .enum(['basic', 'premium', 'enterprise'], {
-            message: 'Subscription plan must be basic, premium, or enterprise'
-        })
-        .default('basic')
-        .optional(),
+    location: z.string().min(1, 'Location is required').max(200, 'Location is too long').trim().optional(),
+    amenities: z.array(z.string()).min(1, 'At least one amenity is required').optional(),
+    price: z.number().min(0, 'Price must be positive').optional(),
+    rating: z.number().min(0).max(5).optional(),
 });
 
 /**

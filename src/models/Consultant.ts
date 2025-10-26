@@ -1,57 +1,47 @@
-import mongoose from 'mongoose';
+const mongoose = require('mongoose');
 
-const consultantSchema = new mongoose.Schema(
+// Custom validators
+const phoneValidator = val => /^[6-9]\d{9}$/.test(val); // Indian 10-digit
+const emailValidator = val => /\S+@\S+\.\S+/.test(val);
+
+const consultantSchema = mongoose.Schema(
     {
-        user: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'User',
-            required: true
-        }, // link to User
+        user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, // link to User
+        // new field for gym association
+        gym: { type: mongoose.Schema.Types.ObjectId, ref: 'GymCenter', required: true },
+        name: { type: String, required: true }, // redundant but helpful for search
+        specialty: { type: String, required: true }, // e.g. Dietician, Yoga Trainer
+        description: { type: String },
+        gender: { type: String, enum: ["male", "female", "other"] }, // ABDM/FHIR adds
+        dateOfBirth: { type: Date }, // optional
 
-        name: {
-            type: String,
-            required: true
-        }, // redundant but helpful for search
-        specialty: {
-            type: String,
-            required: true
-        }, // e.g. Dietician, Yoga Trainer
-        description: {
-            type: String
-        },
+        yearsOfExperience: { type: Number, default: 0, min: 0, max: 50 },
 
-        yearsOfExperience: {
-            type: Number,
-            default: 0
-        },
+        certifications: [{ type: String }], // list of certifications
+        badges: [{ type: String }], // e.g. ["Certified", "Top Rated"]
 
-        certifications: [{
-            type: String
-        }], // list of certifications
-        badges: [{
-            type: String
-        }], // e.g. ["Certified", "Top Rated"]
+        qualification: [
+            {
+                degree: String,
+                board: String,
+                year: Number,
+                field: String
+            }
+        ],
 
         modeOfTraining: {
             type: String,
-            enum: ['online', 'offline', 'hybrid'],
-            default: 'online',
+            enum: ["online", "offline", "hybrid"],
+            default: "online",
         },
 
         // Pricing structure
         pricing: {
-            perSession: {
-                type: Number
-            }, // single session cost
-            perMonth: {
-                type: Number
-            },
-            perWeek: {
-                type: Number
-            },
-            perDay: {
-                type: Number
-            },
+            perSession: { type: Number, min: 0 }, // single session cost
+            perMonth: { type: Number, min: 0 },
+            perWeek: { type: Number, min: 0 },
+            perDay: { type: Number, min: 0 },
+            currency: { type: String, default: "INR" },
             packages: [
                 {
                     title: String,   // e.g. "3-Month Transformation Plan"
@@ -64,55 +54,49 @@ const consultantSchema = new mongoose.Schema(
         availability: {
             status: {
                 type: String,
-                enum: ['Available Now', 'Available Tomorrow', 'Busy'],
-                default: 'Available Now',
+                enum: ["Available Now", "Available Tomorrow", "Busy"],
+                default: "Available Now",
             },
-            nextSlot: {
-                type: String
-            }, // e.g. "Today 3:00 PM"
-            workingDays: [{
-                type: String
-            }], // ["Mon", "Wed", "Fri"]
-            workingHours: {
-                start: String,
-                end: String
-            }, // e.g. "09:00", "17:00"
+            nextSlot: { type: String }, // e.g. "Today 3:00 PM"
+            workingDays: [{ type: String }], // ["Mon", "Wed", "Fri"]
+            workingHours: { start: String, end: String }, // e.g. "09:00", "17:00"
         },
 
         contact: {
             phone: {
-                type: String
+                type: String,
+                validate: [phoneValidator, 'Invalid Indian phone number'],
+                required: true
             },
             email: {
-                type: String
+                type: String,
+                lowercase: true,
+                validate: [emailValidator, 'Invalid email address'],
+                required: true
             },
-            website: {
-                type: String
-            },
+            website: { type: String },
             location: {
-                type: String
-            }, // address if offline/hybrid
+                street: String,
+                city: String,
+                state: String,
+                pincode: String
+            },
         },
 
-        rating: {
-            type: Number,
-            default: 0
-        },
-        reviewsCount: {
-            type: Number,
-            default: 0
-        },
+        consent: { type: Boolean, required: true, default: false }, // Privacy consent (checked at registration),
+        privacyNoticeAccepted: { type: Boolean, default: false },
 
-        image: {
-            type: String
-        }, // could be URL or emoji placeholder
+        rating: { type: Number, default: 0, min: 0, max: 5 },
+        reviewsCount: { type: Number, default: 0, min: 0 },
 
-        isVerified: {
-            type: Boolean,
-            default: false
-        },
+        image: { type: String }, // could be URL or emoji placeholder
+
+        isVerified: { type: Boolean, default: false },
+
+        createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        lastModifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
     },
     { timestamps: true }
 );
 
-export default mongoose.model('Consultant', consultantSchema);
+module.exports = mongoose.model("Consultant", consultantSchema);

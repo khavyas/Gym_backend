@@ -37,7 +37,21 @@ app.use("/api/water", waterRoutes);
 app.use("/api/consultants", consultantRoutes);
 app.use("/api/profile", profileRoutes);
 app.use('/api/gyms', gymRoutes);
-app.use('/api/appointments', appointmentRoutes);
 
-const PORT = process.env.PORT || 10000;
+// 404 handler
+app.use((req, res) => {
+  console.log('404 - Route not found:', req.method, req.originalUrl);
+  res.status(404).json({ message: 'Route not found' });
+});
+
+// Error handler
+app.use((err, req, res, next) => {
+  console.error('Error caught:', err);
+  res.status(err.status || 500).json({
+    message: err.message || 'Server error',
+    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+  });
+});
+
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

@@ -1,80 +1,35 @@
-import mongoose from 'mongoose';
-import { v4 as uuidv4 } from 'uuid';
+const mongoose = require('mongoose');
+const { v4: uuidv4 } = require('uuid');
 
-const gymCenterSchema = new mongoose.Schema(
-    {
-        gymId: {
-            type: String,
-            unique: true,
-            default: () => `GYM-${uuidv4()}`,
-        },
-        name: {
-            type: String,
-            required: true
-        },
-        address: {
-            type: String,
-            required: true
-        },
-        phone: {
-            type: String
-        },
-        email: {
-            type: String
-        },
-        subscriptionPlan: {
-            type: String,
-            enum: ['basic', 'premium', 'enterprise'],
-            default: 'basic'
-        },
-        admin: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'User',
-            required: true,
-        },
+const gymCenterSchema = mongoose.Schema(
+  {
+    gymId: {
+      type: String,
+      unique: true,
+      default: () => `GYM-${uuidv4()}`,
     },
-    { timestamps: true }
+    name: { type: String, required: true },
+    address: { type: String, required: true },
+    phone: { type: String },
+    email: { type: String },
+    admin: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
+    location: {
+      type: { type: String, enum: ['Point'], default: 'Point' },
+      coordinates: { type: [Number], required: true }, // [longitude, latitude]
+    },
+    // Example filter fields, adjust as needed:
+    amenities: [String],
+    price: Number,
+    rating: Number
+  },
+  { timestamps: true }
 );
 
-/**
- * @swagger
- * components:
- *   schemas:
- *     Gym:
- *       type: object
- *       required:
- *         - name
- *         - location
- *       properties:
- *         name:
- *           type: string
- *           description: Name of the gym
- *         location:
- *           type: object
- *           properties:
- *             address:
- *               type: string
- *             city:
- *               type: string
- *             coordinates:
- *               type: object
- *               properties:
- *                 latitude:
- *                   type: number
- *                 longitude:
- *                   type: number
- *         facilities:
- *           type: array
- *           items:
- *             type: string
- *           description: List of available facilities
- *         timings:
- *           type: object
- *           properties:
- *             open:
- *               type: string
- *             close:
- *               type: string
- */
+// Add 2dsphere index for geospatial search
+gymCenterSchema.index({ location: '2dsphere' });
 
-export default mongoose.model('GymCenter', gymCenterSchema);
+module.exports = mongoose.model('GymCenter', gymCenterSchema);

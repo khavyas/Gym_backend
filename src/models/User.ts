@@ -1,47 +1,90 @@
-import mongoose from 'mongoose';
+const mongoose = require('mongoose');
+const encrypt = require('mongoose-encryption');
 
 const userSchema = new mongoose.Schema(
-    {
-        name: {
-            type: String,
-            required: true
-        },
-        age: {
-            type: Number
-        },
-        phone: {
-            type: String
-        },
-        email: {
-            type: String,
-            required: true,
-            unique: true,
-            index: true,
-            lowercase: true, // normalize emails
-            trim: true,
-        },
-        password: {
-            type: String,
-            required: true
-        },
-        role: {
-            type: String,
-            enum: ['user', 'admin', 'consultant', 'superadmin'],
-            default: 'user'
-        },
-
-        // ✅ Fields for Forgot Password / OTP
-        resetOtp: {
-            type: String
-        }, // will hold the 6-digit OTP
-        resetOtpExpiry: {
-            type: Date
-        }, // OTP expiration time
+  {
+    name: { type: String },
+    age: { type: Number },
+    gender: { type: String, enum: ["male", "female", "other"], required: false },
+    dateOfBirth: { type: Date },
+    phone: {
+      type: String,
+      unique: true,
+      sparse: true,
+      trim: true
     },
-    { timestamps: true }
+    email: {
+      type: String,
+      unique: true,
+      sparse: true,
+      lowercase: true,
+      trim: true
+    },
+    password: {
+      type: String,
+      required: function () {
+        return !this.oauthProvider;
+      }
+    },
+    otp: { type: String },
+    otpAttempts: { type: Number, default: 0 },
+    otpLastSent: { type: Date },
+    aadharNumber: {
+      type: String,
+      minlength: 12,
+      maxlength: 12,
+      match: /^[0-9]{12}$/,
+      required: false
+    },
+    abhaId: { type: String, required: false },
+    address: {
+      street: { type: String },
+      city: { type: String },
+      state: { type: String },
+      pincode: { type: String }
+    },
+    consent: { type: Boolean, required: true },
+    privacyNoticeAccepted: { type: Boolean, required: true },
+    emailVerified: { type: Boolean, default: false },
+    phoneVerified: { type: Boolean, default: false },
+    oauthProvider: {
+      type: String,
+      enum: ["google", "facebook", "apple"]
+    },
+    oauthId: { type: String },
+    role: {
+      type: String,
+      enum: ['user', 'admin', 'consultant', 'superadmin'],
+      default: 'user'
+    },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    lastModifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+  },
+  { timestamps: true }
 );
 
-// Optional cleanup: automatically remove expired OTPs (if needed later)
-// userSchema.index({ resetOtpExpiry: 1 }, { expireAfterSeconds: 0 });
+// // ✅ ONLY apply encryption if keys are provided
+// const encKey = process.env.MONGO_ENCRYPT_KEY;
+// const sigKey = process.env.MONGO_SIGN_KEY;
 
-export default mongoose.model('User', userSchema);
+// if (encKey && sigKey) {
+//   console.log('✅ Encryption enabled for sensitive fields');
+//   userSchema.plugin(encrypt, {
+//     encryptionKey: encKey,
+//     signingKey: sigKey,
+//     encryptedFields: ['aadharNumber', 'abhaId']
+//   });
+// } else {
+//   console.warn('⚠️  WARNING: Encryption keys not found. Sensitive data will NOT be encrypted!');
+// }
+
+// Validator: Check that at least one exists (email or phone)
+userSchema.pre('validate', function (next) {
+  if (!this.email && !this.phone) {
+    this.invalidate('email', 'Either email or phone is required');
+    this.invalidate('phone', 'Either email or phone is required');
+  }
+  next();
+});
+
+module.exports = mongoose.model('User', userSchema);

@@ -102,3 +102,35 @@ export const deleteGym = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// ===============================
+// @desc    Get gyms near location with filters
+// @route   GET /api/gyms/nearby?lat=..&lng=..&radius=..&amenities=wifi,pool
+// @access  Public
+exports.getNearbyGyms = async (req, res) => {
+  try {
+    const { lat, lng, radius = 5000, amenities, minPrice, maxPrice } = req.query;
+    if (!lat || !lng) return res.status(400).json({ error: "Location required" });
+
+    let filter: any = {
+      location: {
+        $near: {
+          $geometry: { type: "Point", coordinates: [parseFloat(lng), parseFloat(lat)] },
+          $maxDistance: parseInt(radius)
+        }
+      }
+    };
+
+    if (amenities) filter.amenities = { $all: amenities.split(',') };
+    if (minPrice || maxPrice) filter.price = {};
+    if (minPrice) filter.price.$gte = parseFloat(minPrice);
+    if (maxPrice) filter.price.$lte = parseFloat(maxPrice);
+
+    const gyms = await GymCenter.find(filter).populate('admin', 'name email').limit(50);
+    res.json(gyms);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+
