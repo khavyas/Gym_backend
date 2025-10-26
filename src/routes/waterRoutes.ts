@@ -1,5 +1,5 @@
 import express from 'express';
-import { logWaterIntake, getMyWaterIntake, deleteWaterIntake } from '../controllers/waterService';
+import { logWaterIntake, getMyWaterIntake, deleteWaterIntake } from '../controllers/waterController';
 import { protect } from '../middleware/authMiddleware';
 
 const router = express.Router();

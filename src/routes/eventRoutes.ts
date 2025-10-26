@@ -6,7 +6,7 @@ import {
     getEventById,
     updateEvent,
     deleteEvent,
-} from '../controllers/eventService';
+} from '../controllers/eventController';
 
 const router = express.Router();
 
