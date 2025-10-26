@@ -8,7 +8,7 @@ import {
     getGymById,
     updateGym,
     deleteGym,
-} from '../services/gymService';
+} from '../controllers/gymController';
 import { AuthRequest } from '../types/request-response.dto';
 
 const router = express.Router();

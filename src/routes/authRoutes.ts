@@ -1,5 +1,5 @@
 import express from "express";
-import { registerUser, loginUser, changePassword, checkEmail, sendResetEmail, verifyOtp, resetPassword, registerAdmin } from "../services/authService";
+import { registerUser, loginUser, changePassword, checkEmail, sendResetEmail, verifyOtp, resetPassword, registerAdmin } from "../controllers/authService";
 import sendEmail from '../utils/sendEmail';
 import { roleCheck, protect } from "../middleware/authMiddleware";
 import { registerUserDto, registerAdminDto } from "../types/user.dto";

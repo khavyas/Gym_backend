@@ -1,5 +1,5 @@
 import express from "express";
-import { getProfile, updateProfile } from "../services/profileService";
+import { getProfile, updateProfile } from "../controllers/profileService";
 
 const router = express.Router();
 

@@ -7,7 +7,7 @@ import {
     updateAppointment,
     cancelAppointment,
     deleteAppointment,
-} from '../services/appointmentService';
+} from '../controllers/appointmentService';
 
 const router = express.Router();
 
