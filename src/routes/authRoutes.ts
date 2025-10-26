@@ -1,5 +1,5 @@
 import express from "express";
-import { registerUser, loginUser, changePassword, registerAdmin } from "../controllers/authController";
+import { registerUser, loginUser, changePassword, registerAdmin, verifyOtpAndRegister } from "../controllers/authController";
 import sendEmail from '../utils/sendEmail';
 import { roleCheck, protect } from "../middleware/authMiddleware";
 import { registerUserDto, registerAdminDto } from "../types/user.dto";
@@ -186,7 +186,7 @@ router.post('/change-password', changePassword);
  *       200:
  *         description: OTP verified successfully
  */
-// router.post('/verify-otp', verifyOtp);
+router.post('/verify-otp', verifyOtpAndRegister);
 
 /**
  * @swagger
