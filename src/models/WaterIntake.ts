@@ -1,6 +1,6 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
-const waterIntakeSchema = mongoose.Schema(
+const waterIntakeSchema = new mongoose.Schema(
   {
     user: {
       type: mongoose.Schema.Types.ObjectId,
@@ -19,4 +19,4 @@ const waterIntakeSchema = mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model('WaterIntake', waterIntakeSchema);
+export default mongoose.model('WaterIntake', waterIntakeSchema);

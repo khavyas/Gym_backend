@@ -1,26 +1,26 @@
-const express = require('express');
-const { protect } = require('../middleware/authMiddleware');
-const {
-  createGym,
-  getGyms,
-  getGymById,
-  updateGym,
-  deleteGym,
-  getNearbyGyms
-} = require('../controllers/gymController');
+import express from 'express';
+import { protect } from '../middleware/authMiddleware';
+import {
+    createGym,
+    getGyms,
+    getGymById,
+    updateGym,
+    deleteGym,
+    getNearbyGyms
+} from '../controllers/gymController';
 
 const router = express.Router();
 
 router.route('/')
-  .get(getGyms)
-  .post(protect, createGym);
+    .get(getGyms)
+    .post(protect, createGym);
 
 // NEW Route for discovery/search
-router.get('/nearby', getNearbyGyms); 
+router.get('/nearby', getNearbyGyms);
 
 router.route('/:id')
-  .get(getGymById)
-  .put(protect, updateGym)
-  .delete(protect, deleteGym);
+    .get(getGymById)
+    .put(protect, updateGym)
+    .delete(protect, deleteGym);
 
-module.exports = router;
+export default router;

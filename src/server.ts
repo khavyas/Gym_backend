@@ -1,25 +1,24 @@
-require('dotenv').config();
-const express = require("express");
-const dotenv = require("dotenv");
-const connectDB = require("./config/db");
-const authRoutes = require("./routes/authRoutes");
-const eventRoutes = require("./routes/eventRoutes");
-const waterRoutes = require("./routes/waterRoutes");
-const consultantRoutes = require("./routes/consultantRoutes");
-const profileRoutes = require("./routes/profileRoutes");
-const cors = require("cors");
-const gymRoutes = require('./routes/gymRoutes');
+import express from "express";
+import dotenv from "dotenv";
+import connectDB from "./config/db";
+import eventRoutes from "./routes/eventRoutes";
+import waterRoutes from "./routes/waterRoutes";
+import consultantRoutes from "./routes/consultantRoutes";
+import profileRoutes from "./routes/profileRoutes";
+import cors from "cors";
+import gymRoutes from './routes/gymRoutes';
+import appointmentRoutes from './routes/appointmentRoutes';
+import swaggerUI from 'swagger-ui-express';
+import swaggerSpec from './config/swagger';
+import authRoutes from './routes/authRoutes'
 
 dotenv.config();
 connectDB();
 
 const app = express();
 
-// Middleware
-app.use(express.json());
-app.use(cors());
-
 // Detailed logging middleware
+// log every request
 app.use((req, res, next) => {
   console.log('\n=== Incoming Request ===');
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
@@ -30,7 +29,14 @@ app.use((req, res, next) => {
   next();
 });
 
-// Routes - AUTH FIRST
+// Middleware
+app.use(express.json());
+app.use(cors());
+
+// Swagger UI
+app.use('/api-docs', swaggerUI.serve, swaggerUI.setup(swaggerSpec));
+
+// Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/events", eventRoutes);
 app.use("/api/water", waterRoutes);
@@ -47,7 +53,7 @@ app.use((req, res) => {
 // Error handler
 app.use((err, req, res, next) => {
   console.error('Error caught:', err);
-  res.status(err.status || 500).json({ 
+  res.status(err.status || 500).json({
     message: err.message || 'Server error',
     stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
   });

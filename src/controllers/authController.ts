@@ -1,8 +1,11 @@
-const User = require('../models/User');
-const Profile = require('../models/Profile');
-const Otp = require('../models/Otp');
-const bcrypt = require('bcryptjs');
-const generateToken = require('../utils/generateToken');
+import { AuthRequest } from "../types/request-response.dto";
+import { RegisterAdminDto } from "../types/user.dto";
+
+import User from '../models/User';
+import bcrypt from 'bcrypt';
+import generateToken from '../utils/generateToken';
+import Otp from '../models/Otp';
+
 const MAX_OTP_ATTEMPTS = 5;
 const OTP_RESEND_COOLDOWN_MS = 60000; // 1 min cooldown
 // const sendMail = require('../utils/sendMail'); // Uncomment when using email
@@ -10,38 +13,38 @@ const OTP_RESEND_COOLDOWN_MS = 60000; // 1 min cooldown
 // ============================================
 // NEW USER REGISTRATION (Step 1: Send OTP)
 // ============================================
-exports.registerUser = async (req, res) => {
+export const registerUser = async (req, res) => {
   console.log("Incoming registration body:", req.body);
-  
-  const { 
-    name, age, phone, email, password, role, 
-    consent, privacyNoticeAccepted, aadharNumber, abhaId, ...rest 
+
+  const {
+    name, age, phone, email, password, role,
+    consent, privacyNoticeAccepted, aadharNumber, abhaId, ...rest
   } = req.body;
 
   try {
     // Check for consent and privacy acceptance
     if (!consent) {
-      return res.status(400).json({ 
-        message: "Consent is required as per Indian standards/ABDM." 
+      return res.status(400).json({
+        message: "Consent is required as per Indian standards/ABDM."
       });
     }
-    
+
     if (!privacyNoticeAccepted) {
-      return res.status(400).json({ 
-        message: "Privacy notice must be accepted." 
+      return res.status(400).json({
+        message: "Privacy notice must be accepted."
       });
     }
 
     if (!email && !phone) {
-      return res.status(400).json({ 
-        message: "Either email or phone is required" 
+      return res.status(400).json({
+        message: "Either email or phone is required"
       });
     }
 
     // Only require password if not OAuth
     if (!req.body.oauthProvider && !password) {
-      return res.status(400).json({ 
-        message: "Password is required unless using OAuth login." 
+      return res.status(400).json({
+        message: "Password is required unless using OAuth login."
       });
     }
 
@@ -90,10 +93,14 @@ exports.registerUser = async (req, res) => {
   }
 };
 
+// @desc Register new admin
+export const registerAdmin = async (req: AuthRequest<RegisterAdminDto>, res) => {
+};
+
 // ============================================
 // VERIFY OTP AND CREATE USER (Step 2)
 // ============================================
-exports.verifyOtpAndRegister = async (req, res) => {
+export const verifyOtpAndRegister = async (req, res) => {
   const { phone, email, otp, name, age, role, aadharNumber, abhaId, password } = req.body;
 
   try {
@@ -104,9 +111,9 @@ exports.verifyOtpAndRegister = async (req, res) => {
     });
 
     if (!otpRecord) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Invalid or expired OTP" 
+      return res.status(400).json({
+        success: false,
+        message: "Invalid or expired OTP"
       });
     }
 
@@ -120,7 +127,7 @@ exports.verifyOtpAndRegister = async (req, res) => {
     }
 
     // Build user data
-    const userData = {
+    let userData: any = {
       name,
       age,
       phone,
@@ -171,11 +178,11 @@ function maskAbha(abha) {
 // ============================================
 // GET USER PROFILE (with masking)
 // ============================================
-exports.getUserProfile = async (req, res) => {
+export const getUserProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ message: "User not found" });
-    
+
     res.json({
       ...user.toObject(),
       aadharNumber: maskAadhaar(user.aadharNumber),
@@ -191,13 +198,13 @@ exports.getUserProfile = async (req, res) => {
 // ============================================
 // LOGIN USER
 // ============================================
-exports.loginUser = async (req, res) => {
+export const loginUser = async (req, res) => {
   const { email, phone, password, identifier } = req.body;
 
   try {
     // Decide what the user entered: email or phone
-    const query = {};
-    
+    const query: any = {};
+
     if (email) {
       query.email = email.toLowerCase().trim();
     } else if (phone) {
@@ -210,8 +217,8 @@ exports.loginUser = async (req, res) => {
         query.email = trimmedIdentifier.toLowerCase();
       }
     } else {
-      return res.status(400).json({ 
-        message: "Email or phone is required" 
+      return res.status(400).json({
+        message: "Email or phone is required"
       });
     }
 
@@ -221,14 +228,14 @@ exports.loginUser = async (req, res) => {
 
     // Find user by either field
     const user = await User.findOne(query);
-    
+
     if (!user) {
       console.log("❌ User not found with query:", query);
-      
+
       // DEBUG: Check what's actually in the database
       const allUsers = await User.find({}).select('email phone name');
       console.log("All users in DB:", allUsers);
-      
+
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
@@ -247,10 +254,10 @@ exports.loginUser = async (req, res) => {
     }
 
     console.log("Stored password hash:", user.password);
-    
+
     const isPasswordValid = await bcrypt.compare(password, user.password);
     console.log("Password valid:", isPasswordValid);
-    
+
     if (!isPasswordValid) {
       console.log("❌ Password mismatch for user:", user.email || user.phone);
       return res.status(401).json({ message: "Invalid credentials" });
@@ -273,7 +280,7 @@ exports.loginUser = async (req, res) => {
   }
 };
 
-exports.changePassword = async (req, res) => {
+export const changePassword = async (req, res) => {
   const { userId, newPassword } = req.body;
   try {
     if (!userId || !newPassword) {
@@ -283,7 +290,7 @@ exports.changePassword = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
-    
+
     // Hash new password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(newPassword, salt);
@@ -296,7 +303,7 @@ exports.changePassword = async (req, res) => {
 };
 
 // SEND OTP endpoint
-exports.sendOtp = async (req, res) => {
+export const sendOtp = async (req, res) => {
   const { email, phone } = req.body;
   try {
     const user = await User.findOne({ $or: [{ email }, { phone }] });
@@ -328,7 +335,7 @@ exports.sendOtp = async (req, res) => {
 
 
 // CONFIRM OTP endpoint
-exports.confirmOtp = async (req, res) => {
+export const confirmOtp = async (req, res) => {
   const { email, otp } = req.body;
   const user = await User.findOne({ email });
   if (!user) return res.status(404).json({ success: false, message: "Email not registered" });
@@ -339,7 +346,7 @@ exports.confirmOtp = async (req, res) => {
 };
 
 // VERIFY EMAIL endpoint
-exports.verifyEmail = async (req, res) => {
+export const verifyEmail = async (req, res) => {
   const { email } = req.body;
   const user = await User.findOne({ email });
   if (user) {

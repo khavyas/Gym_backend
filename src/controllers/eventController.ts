@@ -1,21 +1,21 @@
-const Event = require('../models/Event');
+import Event from '../models/Event';
 
 // @desc Create new event
-exports.createEvent = async (req, res) => {
+export const createEvent = async (req, res) => {
   try {
     // Only gym admin can create event
     if (req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Only gym admins can create events' });
     }
 
-    const { 
-      title, 
-      description, 
-      instructor, 
-      cost, 
-      benefits, 
-      date, 
-      location, 
+    const {
+      title,
+      description,
+      instructor,
+      cost,
+      benefits,
+      date,
+      location,
       gymCenter,
       eventType,
       onlineLink
@@ -52,7 +52,7 @@ exports.createEvent = async (req, res) => {
 
 
 // @desc Get all events
-exports.getEvents = async (req, res) => {
+export const getEvents = async (req, res) => {
   try {
     const events = await Event.find()
       .populate('gymCenter')
@@ -64,7 +64,7 @@ exports.getEvents = async (req, res) => {
 };
 
 // @desc Get single event
-exports.getEventById = async (req, res) => {
+export const getEventById = async (req, res) => {
   try {
     const event = await Event.findById(req.params.id)
       .populate('gymCenter')
@@ -79,7 +79,7 @@ exports.getEventById = async (req, res) => {
 };
 
 // @desc Update event
-exports.updateEvent = async (req, res) => {
+export const updateEvent = async (req, res) => {
   try {
     const event = await Event.findById(req.params.id);
 
@@ -114,7 +114,7 @@ exports.updateEvent = async (req, res) => {
 };
 
 // @desc Delete event
-exports.deleteEvent = async (req, res) => {
+export const deleteEvent = async (req, res) => {
   try {
     const event = await Event.findById(req.params.id);
 
@@ -128,7 +128,7 @@ exports.deleteEvent = async (req, res) => {
       return res.status(403).json({ message: 'Not authorized' });
     }
 
-    await event.remove();
+    await event.deleteOne();
     res.json({ message: 'Event removed' });
   } catch (error) {
     res.status(500).json({ message: error.message });

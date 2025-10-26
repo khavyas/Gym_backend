@@ -1,11 +1,12 @@
-const mongoose = require("mongoose");
+import mongoose from 'mongoose';
 
 const connectDB = async () => {
   try {
-    // Directly use the hardcoded URI - ignore environment variables for now
-    const mongoUri = "mongodb+srv://khavyasakthi1_db_user:8bvkjKiejsSDerzv@cluster0.rjvoxei.mongodb.net/gym_app?retryWrites=true&w=majority&appName=Cluster0";
+    const mongoUri = process.env.MONGODB_URI;
 
-    console.log('Using hardcoded MongoDB URI');
+    if (!mongoUri) {
+      throw new Error('MONGODB_URI environment variable is not defined');
+    }
 
     await mongoose.connect(mongoUri);
     console.log("✅ MongoDB connected successfully");
@@ -16,4 +17,4 @@ const connectDB = async () => {
   }
 };
 
-module.exports = connectDB;
+export default connectDB;

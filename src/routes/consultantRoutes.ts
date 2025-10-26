@@ -1,6 +1,6 @@
-const express = require("express");
-const { protect } = require("../middleware/authMiddleware");
-const { createConsultant, getConsultants, getConsultantById, updateConsultant, adminOnboardConsultant } = require("../controllers/consultantController");
+import express from "express";
+import { protect } from "../middleware/authMiddleware";
+import { createConsultant, getConsultants, getConsultantById, updateConsultant, adminOnboardConsultant } from "../controllers/consultantController";
 
 const router = express.Router();
 
@@ -10,6 +10,6 @@ router.get("/", getConsultants);
 router.get("/:id", getConsultantById);
 router.put("/", protect, updateConsultant);
 
-  
 
-module.exports = router;
+
+export default router;

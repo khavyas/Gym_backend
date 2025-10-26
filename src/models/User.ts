@@ -1,5 +1,5 @@
-const mongoose = require('mongoose');
-const encrypt = require('mongoose-encryption');
+import mongoose from 'mongoose';
+import encrypt from 'mongoose-encryption';
 
 const userSchema = new mongoose.Schema(
   {
@@ -7,34 +7,34 @@ const userSchema = new mongoose.Schema(
     age: { type: Number },
     gender: { type: String, enum: ["male", "female", "other"], required: false },
     dateOfBirth: { type: Date },
-    phone: { 
-      type: String, 
-      unique: true, 
+    phone: {
+      type: String,
+      unique: true,
       sparse: true,
-      trim: true 
+      trim: true
     },
-    email: { 
-      type: String, 
-      unique: true, 
+    email: {
+      type: String,
+      unique: true,
       sparse: true,
       lowercase: true,
-      trim: true 
+      trim: true
     },
-    password: { 
+    password: {
       type: String,
-      required: function() {
+      required: function () {
         return !this.oauthProvider;
       }
     },
     otp: { type: String },
     otpAttempts: { type: Number, default: 0 },
     otpLastSent: { type: Date },
-    aadharNumber: { 
-      type: String, 
-      minlength: 12, 
-      maxlength: 12, 
-      match: /^[0-9]{12}$/, 
-      required: false 
+    aadharNumber: {
+      type: String,
+      minlength: 12,
+      maxlength: 12,
+      match: /^[0-9]{12}$/,
+      required: false
     },
     abhaId: { type: String, required: false },
     address: {
@@ -47,9 +47,9 @@ const userSchema = new mongoose.Schema(
     privacyNoticeAccepted: { type: Boolean, required: true },
     emailVerified: { type: Boolean, default: false },
     phoneVerified: { type: Boolean, default: false },
-    oauthProvider: { 
-      type: String, 
-      enum: ["google", "facebook", "apple"] 
+    oauthProvider: {
+      type: String,
+      enum: ["google", "facebook", "apple"]
     },
     oauthId: { type: String },
     role: {
@@ -79,7 +79,7 @@ const userSchema = new mongoose.Schema(
 // }
 
 // Validator: Check that at least one exists (email or phone)
-userSchema.pre('validate', function(next) {
+userSchema.pre('validate', function (next) {
   if (!this.email && !this.phone) {
     this.invalidate('email', 'Either email or phone is required');
     this.invalidate('phone', 'Either email or phone is required');
@@ -87,4 +87,4 @@ userSchema.pre('validate', function(next) {
   next();
 });
 
-module.exports = mongoose.model('User', userSchema);
+export default mongoose.model('User', userSchema);

@@ -4,7 +4,7 @@
         "module": "commonjs",
         "moduleResolution": "node",
         "esModuleInterop": true,
-        "allowJs": true, // allow .js files
+        "allowJs": false, // allow .js files
         "outDir": "./dist",
         "rootDir": "./src",
         "resolveJsonModule": true,

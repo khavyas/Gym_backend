@@ -1,12 +1,12 @@
-const mongoose = require('mongoose');
-const { v4: uuidv4 } = require('uuid'); 
+import mongoose from 'mongoose';
+import { v4 as uuidv4 } from 'uuid';
 
-const gymCenterSchema = mongoose.Schema(
+const gymCenterSchema = new mongoose.Schema(
   {
     gymId: {
       type: String,
       unique: true,
-      default: () => `GYM-${uuidv4()}`, 
+      default: () => `GYM-${uuidv4()}`,
     },
     name: { type: String, required: true },
     address: { type: String, required: true },
@@ -15,7 +15,7 @@ const gymCenterSchema = mongoose.Schema(
     admin: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: true, 
+      required: true,
     },
     location: {
       type: { type: String, enum: ['Point'], default: 'Point' },
@@ -32,4 +32,4 @@ const gymCenterSchema = mongoose.Schema(
 // Add 2dsphere index for geospatial search
 gymCenterSchema.index({ location: '2dsphere' });
 
-module.exports = mongoose.model('GymCenter', gymCenterSchema);
+export default mongoose.model('GymCenter', gymCenterSchema);

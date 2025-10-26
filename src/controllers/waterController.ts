@@ -1,7 +1,7 @@
-const WaterIntake = require('../models/WaterIntake');
+import WaterIntake from '../models/WaterIntake';
 
 // @desc Log water intake
-exports.logWaterIntake = async (req, res) => {
+export const logWaterIntake = async (req, res) => {
   try {
     const { amount } = req.body;
 
@@ -21,7 +21,7 @@ exports.logWaterIntake = async (req, res) => {
 };
 
 // @desc Get today's water intake for logged-in user
-exports.getMyWaterIntake = async (req, res) => {
+export const getMyWaterIntake = async (req, res) => {
   try {
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
@@ -42,7 +42,7 @@ exports.getMyWaterIntake = async (req, res) => {
 
 
 // @desc Delete a water entry
-exports.deleteWaterIntake = async (req, res) => {
+export const deleteWaterIntake = async (req, res) => {
   try {
     const entry = await WaterIntake.findById(req.params.id);
 
@@ -55,7 +55,7 @@ exports.deleteWaterIntake = async (req, res) => {
       return res.status(401).json({ message: 'Not authorized' });
     }
 
-    await entry.remove();
+    await entry.deleteOne();
     res.json({ message: 'Entry removed' });
   } catch (error) {
     res.status(500).json({ message: error.message });

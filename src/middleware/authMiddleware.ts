@@ -1,7 +1,7 @@
-const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+import jwt from 'jsonwebtoken';
+import User from '../models/User';
 
-exports.protect = async (req, res, next) => {
+export const protect = async (req, res, next) => {
   let token;
 
   // Check for token in Authorization header
@@ -21,18 +21,36 @@ exports.protect = async (req, res, next) => {
 
   try {
     // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
+    const decoded: any = jwt.verify(token, process.env.JWT_SECRET);
+
     // Get user from token
     req.user = await User.findById(decoded.id).select('-password');
-    
+
     if (!req.user) {
       return res.status(401).json({ message: 'User not found' });
     }
-    
+
     next();
   } catch (error) {
     console.error('Token verification error:', error.message);
     return res.status(401).json({ message: 'Not authorized, token failed' });
   }
+};
+
+
+export const roleCheck = (requiredRoles: string[]) => {
+  return (req, res, next) => {
+    console.log('User role:', req.user ? req.user.role : 'No user');
+    if (!req.user) {
+      return res.status(401).json({ message: 'Not authorized, no user found' });
+    }
+
+    if (!requiredRoles.includes(req.user.role)) {
+      return res.status(403).json({
+        message: `Not authorized, ${requiredRoles.join(', ')} roles required`
+      });
+    }
+
+    next();
+  };
 };

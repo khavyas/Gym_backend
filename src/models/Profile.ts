@@ -1,5 +1,5 @@
 // models/Profile.js
-const mongoose = require("mongoose");
+import mongoose from 'mongoose';
 
 const profileSchema = new mongoose.Schema(
   {
@@ -72,11 +72,11 @@ const profileSchema = new mongoose.Schema(
 );
 
 // Custom validator to require either email or phone
-profileSchema.pre('validate', function(next) {
+profileSchema.pre('validate', function (next) {
   if (!this.email && !this.phone) {
     next(new Error('Either email or phone is required'));
   }
   next();
 });
 
-module.exports = mongoose.model("Profile", profileSchema);
+export default mongoose.model("Profile", profileSchema);

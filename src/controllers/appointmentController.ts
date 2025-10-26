@@ -1,7 +1,7 @@
 // controllers/appointmentController.js
-const Appointment = require('../models/Appointment');
-const Consultant = require('../models/Consultant');
-const mongoose = require('mongoose');
+import Appointment from '../models/Appointment';
+import Consultant from '../models/Consultant';
+import mongoose from 'mongoose';
 
 // helper authorization: owner (user), consultant, or admin/superadmin
 const canModify = (reqUser, appointment) => {
@@ -14,7 +14,7 @@ const canModify = (reqUser, appointment) => {
 };
 
 // controllers/appointmentController.js (replace createAppointment)
-exports.createAppointment = async (req, res) => {
+export const createAppointment = async (req, res) => {
   try {
     const { consultant: consultantId, startAt, endAt, title, notes, mode, location, price } = req.body;
 
@@ -95,23 +95,23 @@ exports.createAppointment = async (req, res) => {
 
 
 // Get appointments (filters: userId, consultantId, status, from, to)
-exports.getAppointments = async (req, res) => {
+export const getAppointments = async (req, res) => {
   try {
     const { userId, consultantId, status, from, to } = req.query;
     const filter = {};
 
-    if (userId) filter.user = userId;
-    if (consultantId) filter.consultant = consultantId;
-    if (status) filter.status = status;
+    if (userId) filter['user'] = userId;
+    if (consultantId) filter['consultant'] = consultantId;
+    if (status) filter['status'] = status;
     if (from || to) {
-      filter.startAt = {};
-      if (from) filter.startAt.$gte = new Date(from);
-      if (to) filter.startAt.$lte = new Date(to);
+      filter['startAt'] = {};
+      if (from) filter['startAt'].$gte = new Date(from);
+      if (to) filter['startAt'].$lte = new Date(to);
     }
 
     // restrict for non-admins: only appointments user is involved in
     if (!['admin', 'superadmin'].includes(req.user.role)) {
-      filter.$or = [{ user: req.user._id }, { consultant: req.user._id }];
+      filter['$or'] = [{ user: req.user._id }, { consultant: req.user._id }];
     }
 
     const appointments = await Appointment.find(filter)
@@ -126,7 +126,7 @@ exports.getAppointments = async (req, res) => {
 };
 
 // Get single appointment
-exports.getAppointmentById = async (req, res) => {
+export const getAppointmentById = async (req, res) => {
   try {
     const appt = await Appointment.findById(req.params.id)
       .populate('user', 'name email')
@@ -143,7 +143,7 @@ exports.getAppointmentById = async (req, res) => {
 };
 
 // Update appointment (partial)
-exports.updateAppointment = async (req, res) => {
+export const updateAppointment = async (req, res) => {
   try {
     const appt = await Appointment.findById(req.params.id);
     if (!appt) return res.status(404).json({ message: 'Appointment not found' });
@@ -182,7 +182,7 @@ exports.updateAppointment = async (req, res) => {
 };
 
 // Cancel appointment
-exports.cancelAppointment = async (req, res) => {
+export const cancelAppointment = async (req, res) => {
   try {
     const appt = await Appointment.findById(req.params.id);
     if (!appt) return res.status(404).json({ message: 'Appointment not found' });
@@ -204,7 +204,7 @@ exports.cancelAppointment = async (req, res) => {
 };
 
 // Delete appointment (hard delete) - allowed to admin or booking user
-exports.deleteAppointment = async (req, res) => {
+export const deleteAppointment = async (req, res) => {
   try {
     const appt = await Appointment.findById(req.params.id);
     if (!appt) return res.status(404).json({ message: 'Appointment not found' });
