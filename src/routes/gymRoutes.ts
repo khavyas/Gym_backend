@@ -1,13 +1,13 @@
-const express = require('express');
-const { protect } = require('../middleware/authMiddleware');
-const {
+import express from 'express';
+import { protect } from '../middleware/authMiddleware';
+import {
     createGym,
     getGyms,
     getGymById,
     updateGym,
     deleteGym,
     getNearbyGyms
-} = require('../controllers/gymController');
+} from '../controllers/gymController';
 
 const router = express.Router();
 
@@ -23,4 +23,4 @@ router.route('/:id')
     .put(protect, updateGym)
     .delete(protect, deleteGym);
 
-module.exports = router;
+export default router;

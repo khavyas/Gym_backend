@@ -15,7 +15,7 @@ export const getProfile = async (req, res) => {
 
 // @desc Update user profile
 // POST /api/profile/update
-exports.updateProfile = async (req, res) => {
+export const updateProfile = async (req, res) => {
   // req.user.id from auth, req.body has profile data
   const { fullName, age, gender, address, aadharNumber, abhaId, ...rest } = req.body;
 

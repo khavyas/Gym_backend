@@ -1,10 +1,10 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 // Custom validators
 const phoneValidator = val => /^[6-9]\d{9}$/.test(val); // Indian 10-digit
 const emailValidator = val => /\S+@\S+\.\S+/.test(val);
 
-const consultantSchema = mongoose.Schema(
+const consultantSchema = new mongoose.Schema(
     {
         user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, // link to User
         // new field for gym association
@@ -99,4 +99,4 @@ const consultantSchema = mongoose.Schema(
     { timestamps: true }
 );
 
-module.exports = mongoose.model("Consultant", consultantSchema);
+export default mongoose.model("Consultant", consultantSchema);

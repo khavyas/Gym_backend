@@ -107,7 +107,7 @@ export const deleteGym = async (req, res) => {
 // @desc    Get gyms near location with filters
 // @route   GET /api/gyms/nearby?lat=..&lng=..&radius=..&amenities=wifi,pool
 // @access  Public
-exports.getNearbyGyms = async (req, res) => {
+export const getNearbyGyms = async (req, res) => {
   try {
     const { lat, lng, radius = 5000, amenities, minPrice, maxPrice } = req.query;
     if (!lat || !lng) return res.status(400).json({ error: "Location required" });

@@ -1,5 +1,5 @@
-const mongoose = require('mongoose');
-const encrypt = require('mongoose-encryption');
+import mongoose from 'mongoose';
+import encrypt from 'mongoose-encryption';
 
 const userSchema = new mongoose.Schema(
   {
@@ -87,4 +87,4 @@ userSchema.pre('validate', function (next) {
   next();
 });
 
-module.exports = mongoose.model('User', userSchema);
+export default mongoose.model('User', userSchema);

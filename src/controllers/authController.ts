@@ -1,10 +1,11 @@
 import { AuthRequest } from "../types/request-response.dto";
+import { RegisterAdminDto } from "../types/user.dto";
 
-const User = require('../models/User');
-const Profile = require('../models/Profile');
-const Otp = require('../models/Otp');
-const bcrypt = require('bcryptjs');
-const generateToken = require('../utils/generateToken');
+import User from '../models/User';
+import bcrypt from 'bcrypt';
+import generateToken from '../utils/generateToken';
+import Otp from '../models/Otp';
+
 const MAX_OTP_ATTEMPTS = 5;
 const OTP_RESEND_COOLDOWN_MS = 60000; // 1 min cooldown
 // const sendMail = require('../utils/sendMail'); // Uncomment when using email
@@ -12,7 +13,7 @@ const OTP_RESEND_COOLDOWN_MS = 60000; // 1 min cooldown
 // ============================================
 // NEW USER REGISTRATION (Step 1: Send OTP)
 // ============================================
-exports.registerUser = async (req, res) => {
+export const registerUser = async (req, res) => {
   console.log("Incoming registration body:", req.body);
 
   const {
@@ -92,10 +93,14 @@ exports.registerUser = async (req, res) => {
   }
 };
 
+// @desc Register new admin
+export const registerAdmin = async (req: AuthRequest<RegisterAdminDto>, res) => {
+};
+
 // ============================================
 // VERIFY OTP AND CREATE USER (Step 2)
 // ============================================
-exports.verifyOtpAndRegister = async (req, res) => {
+export const verifyOtpAndRegister = async (req, res) => {
   const { phone, email, otp, name, age, role, aadharNumber, abhaId, password } = req.body;
 
   try {
@@ -173,7 +178,7 @@ function maskAbha(abha) {
 // ============================================
 // GET USER PROFILE (with masking)
 // ============================================
-exports.getUserProfile = async (req, res) => {
+export const getUserProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ message: "User not found" });
@@ -193,7 +198,7 @@ exports.getUserProfile = async (req, res) => {
 // ============================================
 // LOGIN USER
 // ============================================
-exports.loginUser = async (req, res) => {
+export const loginUser = async (req, res) => {
   const { email, phone, password, identifier } = req.body;
 
   try {
@@ -275,7 +280,7 @@ exports.loginUser = async (req, res) => {
   }
 };
 
-exports.changePassword = async (req, res) => {
+export const changePassword = async (req, res) => {
   const { userId, newPassword } = req.body;
   try {
     if (!userId || !newPassword) {
@@ -298,7 +303,7 @@ exports.changePassword = async (req, res) => {
 };
 
 // SEND OTP endpoint
-exports.sendOtp = async (req, res) => {
+export const sendOtp = async (req, res) => {
   const { email, phone } = req.body;
   try {
     const user = await User.findOne({ $or: [{ email }, { phone }] });
@@ -330,7 +335,7 @@ exports.sendOtp = async (req, res) => {
 
 
 // CONFIRM OTP endpoint
-exports.confirmOtp = async (req, res) => {
+export const confirmOtp = async (req, res) => {
   const { email, otp } = req.body;
   const user = await User.findOne({ email });
   if (!user) return res.status(404).json({ success: false, message: "Email not registered" });
@@ -341,7 +346,7 @@ exports.confirmOtp = async (req, res) => {
 };
 
 // VERIFY EMAIL endpoint
-exports.verifyEmail = async (req, res) => {
+export const verifyEmail = async (req, res) => {
   const { email } = req.body;
   const user = await User.findOne({ email });
   if (user) {

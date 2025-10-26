@@ -1,13 +1,13 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const { protect } = require('../middleware/authMiddleware');
-const {
+import { protect } from '../middleware/authMiddleware';
+import {
   createEvent,
   getEvents,
   getEventById,
   updateEvent,
   deleteEvent,
-} = require('../controllers/eventController');
+} from '../controllers/eventController';
 
 // Public
 router.get('/', getEvents);
@@ -18,4 +18,4 @@ router.post('/', protect, createEvent);
 router.put('/:id', protect, updateEvent);
 router.delete('/:id', protect, deleteEvent);
 
-module.exports = router;
+export default router;

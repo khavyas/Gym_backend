@@ -1,7 +1,7 @@
-const mongoose = require('mongoose');
-const { v4: uuidv4 } = require('uuid');
+import mongoose from 'mongoose';
+import { v4 as uuidv4 } from 'uuid';
 
-const gymCenterSchema = mongoose.Schema(
+const gymCenterSchema = new mongoose.Schema(
   {
     gymId: {
       type: String,
@@ -32,4 +32,4 @@ const gymCenterSchema = mongoose.Schema(
 // Add 2dsphere index for geospatial search
 gymCenterSchema.index({ location: '2dsphere' });
 
-module.exports = mongoose.model('GymCenter', gymCenterSchema);
+export default mongoose.model('GymCenter', gymCenterSchema);

@@ -1,11 +1,11 @@
-const Consultant = require('../models/Consultant');
-const GymCenter = require('../models/GymCenter');
-const User = require('../models/User');
-const bcrypt = require('bcryptjs'); // or your password hash library
+import Consultant from '../models/Consultant';
+import GymCenter from '../models/GymCenter';
+import User from '../models/User';
+import bcrypt from 'bcrypt'; // or your password hash library
 
 
 // @desc Admin creates consultant user + profile in one step
-exports.adminOnboardConsultant = async (req, res) => {
+export const adminOnboardConsultant = async (req, res) => {
   try {
     const { email, phone, password, gym, ...profileData } = req.body;
 
@@ -80,7 +80,7 @@ exports.adminOnboardConsultant = async (req, res) => {
 
 
 // @desc Create consultant profile
-exports.createConsultant = async (req, res) => {
+export const createConsultant = async (req, res) => {
   try {
     if (!req.body.gym) {
       return res.status(400).json({ message: "Gym reference (gym) is required." });
@@ -130,7 +130,7 @@ exports.createConsultant = async (req, res) => {
 
 
 // @desc Get all consultants
-exports.getConsultants = async (req, res) => {
+export const getConsultants = async (req, res) => {
   try {
     const consultants = await Consultant.find().populate('user', 'name email role');
     res.json(consultants);
@@ -141,7 +141,7 @@ exports.getConsultants = async (req, res) => {
 
 
 // @desc Get single consultant
-exports.getConsultantById = async (req, res) => {
+export const getConsultantById = async (req, res) => {
   try {
     const consultant = await Consultant.findById(req.params.id)
       .populate('user', 'name email role')
@@ -155,7 +155,7 @@ exports.getConsultantById = async (req, res) => {
 
 
 // @desc Update consultant profile (for logged-in consultant)
-exports.updateConsultant = async (req, res) => {
+export const updateConsultant = async (req, res) => {
   try {
     if (req.body.gym) {
       // Verify gym exists if gym update requested

@@ -1,6 +1,6 @@
-const express = require('express');
-const { logWaterIntake, getMyWaterIntake, deleteWaterIntake } = require('../controllers/waterController');
-const { protect } = require('../middleware/authMiddleware');
+import express from 'express';
+import { logWaterIntake, getMyWaterIntake, deleteWaterIntake } from '../controllers/waterController';
+import { protect } from '../middleware/authMiddleware';
 
 const router = express.Router();
 
@@ -8,4 +8,4 @@ router.post('/', protect, logWaterIntake);
 router.get('/', protect, getMyWaterIntake);
 router.delete('/:id', protect, deleteWaterIntake);
 
-module.exports = router;
+export default router;

@@ -1,5 +1,5 @@
 import express from "express";
-import { registerUser, loginUser, changePassword, checkEmail, sendResetEmail, verifyOtp, resetPassword, registerAdmin } from "../controllers/authController";
+import { registerUser, loginUser, changePassword, registerAdmin } from "../controllers/authController";
 import sendEmail from '../utils/sendEmail';
 import { roleCheck, protect } from "../middleware/authMiddleware";
 import { registerUserDto, registerAdminDto } from "../types/user.dto";
@@ -142,7 +142,7 @@ router.post('/change-password', changePassword);
  *       200:
  *         description: Email check result
  */
-router.post('/check-email', checkEmail);
+// router.post('/check-email', checkEmail);
 
 /**
  * @swagger
@@ -163,7 +163,7 @@ router.post('/check-email', checkEmail);
  *       200:
  *         description: Reset email sent successfully
  */
-router.post("/send-reset-email", sendResetEmail);
+// router.post("/send-reset-email", sendResetEmail);
 
 /**
  * @swagger
@@ -186,7 +186,7 @@ router.post("/send-reset-email", sendResetEmail);
  *       200:
  *         description: OTP verified successfully
  */
-router.post('/verify-otp', verifyOtp);
+// router.post('/verify-otp', verifyOtp);
 
 /**
  * @swagger
@@ -211,7 +211,7 @@ router.post('/verify-otp', verifyOtp);
  *       200:
  *         description: Password reset successful
  */
-router.post('/reset-password', resetPassword);
+// router.post('/reset-password', resetPassword);
 
 router.get('/test-email', async (req, res) => {
     try {
