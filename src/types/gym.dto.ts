@@ -31,8 +31,16 @@ export const createGymDto = z.object({
         .min(1, 'Admin email is required')
         .toLowerCase()
         .trim(),
-    location: z.string().min(1, 'Location is required').max(200, 'Location is too long').trim().optional(),
-    amenities: z.array(z.string()).min(1, 'At least one amenity is required').optional(),
+    location: z.object({
+        type: z.enum(['Point'], {
+            message: 'Location type must be Point'
+        }).default('Point'),
+        coordinates: z.tuple([
+            z.number().min(-180).max(180, 'Longitude must be between -180 and 180'),
+            z.number().min(-90).max(90, 'Latitude must be between -90 and 90')
+        ])
+    }),
+    amenities: z.array(z.string()).optional(),
     price: z.number().min(0, 'Price must be positive').optional(),
     rating: z.number().min(0).max(5).optional(),
 });
@@ -66,11 +74,18 @@ export const updateGymDto = z.object({
         .email('Invalid email format')
         .optional()
         .transform((val) => val?.toLowerCase().trim()),
-    subscriptionPlan: z
-        .enum(['basic', 'premium', 'enterprise'], {
-            message: 'Subscription plan must be basic, premium, or enterprise'
-        })
-        .optional(),
+    location: z.object({
+        type: z.enum(['Point'], {
+            message: 'Location type must be Point'
+        }).default('Point'),
+        coordinates: z.tuple([
+            z.number().min(-180).max(180, 'Longitude must be between -180 and 180'),
+            z.number().min(-90).max(90, 'Latitude must be between -90 and 90')
+        ])
+    }).optional(),
+    amenities: z.array(z.string()).optional(),
+    price: z.number().min(0, 'Price must be positive').optional(),
+    rating: z.number().min(0).max(5).optional(),
 });
 
 /**

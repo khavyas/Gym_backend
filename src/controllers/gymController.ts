@@ -1,12 +1,13 @@
 import GymCenter from "../models/GymCenter";
 import User from "../models/User";
 import { CreateGymDto } from "../types/gym.dto";
+import { AuthRequest } from "../types/request-response.dto";
 
 
 // @desc    Superadmin creates a gym and admin credentials
-export const createGym = async (gymDto: CreateGymDto, res) => {
+export const createGym = async (req: AuthRequest<CreateGymDto>, res) => {
   try {
-    const { adminEmail, ...gymData } = gymDto;
+    const { adminEmail, ...gymData } = req.body;
 
     // 1️⃣ Check if admin email already exists
     const existingAdmin = await User.findOne({ email: adminEmail });

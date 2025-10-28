@@ -2,7 +2,7 @@ import express from "express";
 import { registerUser, loginUser, changePassword, registerAdmin, verifyOtpAndRegister } from "../controllers/authController";
 import sendEmail from '../utils/sendEmail';
 import { roleCheck, protect } from "../middleware/authMiddleware";
-import { registerUserDto, registerAdminDto } from "../types/user.dto";
+import { registerUserDto, registerAdminDto, loginUserDto } from "../types/user.dto";
 import { validateRequest } from "../middleware/zodValidation";
 
 const router = express.Router();
@@ -12,25 +12,87 @@ const router = express.Router();
  * /api/auth/register/admin:
  *   post:
  *     tags: [Authentication]
- *     summary: Register a new admin
+ *     summary: Register a new admin (superadmin only)
+ *     description: Register a new admin account. Requires authentication and superadmin role.
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - name
+ *               - email
+ *               - password
  *             properties:
  *               name:
  *                 type: string
+ *                 description: Admin's full name
+ *                 minLength: 1
+ *                 maxLength: 100
+ *                 example: "Admin User"
+ *               age:
+ *                 type: integer
+ *                 description: Admin's age (optional)
+ *                 minimum: 1
+ *                 maximum: 150
+ *                 example: 35
+ *               phone:
+ *                 type: string
+ *                 description: Admin's phone number (optional)
+ *                 example: "9876543210"
  *               email:
  *                 type: string
+ *                 format: email
+ *                 description: Admin's email address (required)
+ *                 example: "admin@example.com"
  *               password:
  *                 type: string
+ *                 description: Admin's password (required)
+ *                 minLength: 6
+ *                 maxLength: 100
+ *                 example: "secureAdminPassword123"
  *     responses:
- *       200:
+ *       201:
  *         description: Admin successfully registered
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 userId:
+ *                   type: string
+ *                 name:
+ *                   type: string
+ *                 email:
+ *                   type: string
+ *                 role:
+ *                   type: string
+ *                 token:
+ *                   type: string
  *       400:
- *         description: Invalid input data
+ *         description: Invalid input data or validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Validation failed"
+ *                 errors:
+ *                   type: object
+ *       401:
+ *         description: Unauthorized - authentication required
+ *       403:
+ *         description: Forbidden - superadmin role required
+ *       500:
+ *         description: Server error
  */
 router.post(
     '/register/admin',
@@ -46,28 +108,107 @@ router.post(
  * /api/auth/register:
  *   post:
  *     tags: [Authentication]
- *     summary: Register a new user
+ *     summary: Register a new user with Indian standards/ABDM compliance
+ *     description: Register a new user account. Either email or phone is required. Password is required unless using OAuth. Consent and privacy notice acceptance are mandatory.
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - name
+ *               - consent
+ *               - privacyNoticeAccepted
  *             properties:
  *               name:
  *                 type: string
+ *                 description: User's full name
+ *                 minLength: 1
+ *                 maxLength: 100
+ *                 example: "John Doe"
+ *               age:
+ *                 type: integer
+ *                 description: User's age
+ *                 minimum: 1
+ *                 maximum: 150
+ *                 example: 30
+ *               phone:
+ *                 type: string
+ *                 description: User's phone number (required if email not provided)
+ *                 example: "9876543210"
  *               email:
  *                 type: string
+ *                 format: email
+ *                 description: User's email address (required if phone not provided)
+ *                 example: "john.doe@example.com"
  *               password:
  *                 type: string
+ *                 description: User's password (required unless using OAuth)
+ *                 minLength: 6
+ *                 maxLength: 100
+ *                 example: "securePassword123"
  *               role:
- *                 type: enum
+ *                 type: string
  *                 enum: [user, consultant]
+ *                 default: user
+ *                 description: User's role in the system
+ *                 example: "user"
+ *               consent:
+ *                 type: boolean
+ *                 description: Consent required as per Indian standards/ABDM (must be true)
+ *                 example: true
+ *               privacyNoticeAccepted:
+ *                 type: boolean
+ *                 description: Privacy notice acceptance (must be true)
+ *                 example: true
+ *               aadharNumber:
+ *                 type: string
+ *                 description: Aadhar number (optional)
+ *                 example: "1234-5678-9012"
+ *               abhaId:
+ *                 type: string
+ *                 description: ABHA ID (optional)
+ *                 example: "12-3456-7890-1234"
+ *               oauthProvider:
+ *                 type: string
+ *                 description: OAuth provider name (if using OAuth login)
+ *                 example: "google"
  *     responses:
- *       200:
+ *       201:
  *         description: User successfully registered
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 userId:
+ *                   type: string
+ *                 name:
+ *                   type: string
+ *                 email:
+ *                   type: string
+ *                 role:
+ *                   type: string
+ *                 token:
+ *                   type: string
  *       400:
- *         description: Invalid input data
+ *         description: Invalid input data or validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Validation failed"
+ *                 errors:
+ *                   type: object
+ *       500:
+ *         description: Server error
  */
 router.post('/register', validateRequest(registerUserDto), registerUser);
 
@@ -77,24 +218,61 @@ router.post('/register', validateRequest(registerUserDto), registerUser);
  *   post:
  *     tags: [Authentication]
  *     summary: Login user
+ *     description: Login using email, phone, or a generic identifier (email or phone)
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - password
  *             properties:
  *               email:
  *                 type: string
+ *                 format: email
+ *                 description: User's email address (optional if phone or identifier is provided)
+ *                 example: "user@example.com"
+ *               phone:
+ *                 type: string
+ *                 description: User's phone number (optional if email or identifier is provided)
+ *                 example: "9876543210"
+ *               identifier:
+ *                 type: string
+ *                 description: Email or phone number (optional if email or phone is provided)
+ *                 example: "user@example.com or 9876543210"
  *               password:
  *                 type: string
+ *                 description: User's password
+ *                 example: "password123"
  *     responses:
  *       200:
  *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 userId:
+ *                   type: string
+ *                 name:
+ *                   type: string
+ *                 email:
+ *                   type: string
+ *                 phone:
+ *                   type: string
+ *                 role:
+ *                   type: string
+ *                 token:
+ *                   type: string
+ *       400:
+ *         description: Validation error
  *       401:
  *         description: Invalid credentials
+ *       500:
+ *         description: Server error
  */
-router.post('/login', loginUser);
+router.post('/login', validateRequest(loginUserDto), loginUser);
 
 /**
  * @swagger

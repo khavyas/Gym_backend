@@ -1,5 +1,5 @@
 import { AuthRequest } from "../types/request-response.dto";
-import { RegisterAdminDto } from "../types/user.dto";
+import { RegisterAdminDto, LoginUserDto } from "../types/user.dto";
 
 import User from '../models/User';
 import bcrypt from 'bcrypt';
@@ -22,38 +22,11 @@ export const registerUser = async (req, res) => {
   } = req.body;
 
   try {
-    // Check for consent and privacy acceptance
-    if (!consent) {
-      return res.status(400).json({
-        message: "Consent is required as per Indian standards/ABDM."
-      });
-    }
-
-    if (!privacyNoticeAccepted) {
-      return res.status(400).json({
-        message: "Privacy notice must be accepted."
-      });
-    }
-
-    if (!email && !phone) {
-      return res.status(400).json({
-        message: "Either email or phone is required"
-      });
-    }
-
-    // Only require password if not OAuth
-    if (!req.body.oauthProvider && !password) {
-      return res.status(400).json({
-        message: "Password is required unless using OAuth login."
-      });
-    }
-
-    // ✅ NORMALIZE EMAIL TO LOWERCASE
-    const normalizedEmail = email ? email.toLowerCase().trim() : null;
-
+    // All validation is now handled by Zod schema in user.dto.ts
+    // The middleware ensures: consent, privacyNoticeAccepted, email/phone requirement, password requirement
     // Build filter only for non-empty supplied fields
     let filters = [];
-    if (normalizedEmail) filters.push({ email: normalizedEmail });
+    if (email) filters.push({ email: email.toLowerCase().trim() });
     if (phone) filters.push({ phone: phone.trim() });
 
     // Only check if any value is supplied
@@ -70,8 +43,8 @@ export const registerUser = async (req, res) => {
     const user = await User.create({
       name,
       age,
-      phone: phone ? phone.trim() : phone,
-      email: normalizedEmail, // ✅ Use normalized email
+      phone: phone,
+      email: email,
       password: hashedPassword,
       role,
       consent,
@@ -95,6 +68,53 @@ export const registerUser = async (req, res) => {
 
 // @desc Register new admin
 export const registerAdmin = async (req: AuthRequest<RegisterAdminDto>, res) => {
+  console.log("Incoming admin registration body:", req.body);
+
+  const { name, age, phone, email, password } = req.body;
+
+  try {
+    // Check if admin already exists with this email
+    const adminExists = await User.findOne({ email: email.toLowerCase().trim() });
+    if (adminExists) {
+      return res.status(400).json({ message: 'Admin with this email already exists' });
+    }
+
+    // Check if phone is provided and already exists
+    if (phone) {
+      const phoneExists = await User.findOne({ phone: phone.trim() });
+      if (phoneExists) {
+        return res.status(400).json({ message: 'User with this phone number already exists' });
+      }
+    }
+
+    // Hash the password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Create admin user with admin role
+    const admin = await User.create({
+      name,
+      age,
+      phone: phone,
+      email: email.toLowerCase().trim(),
+      password: hashedPassword,
+      role: 'admin', // Set role as admin
+      consent: true, // Admins implicitly consent
+      privacyNoticeAccepted: true,
+      emailVerified: true, // Admins are pre-verified
+      phoneVerified: phone ? true : false,
+    });
+
+    res.status(201).json({
+      userId: admin._id,
+      name: admin.name,
+      email: admin.email,
+      role: admin.role,
+      token: generateToken(admin._id),
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 };
 
 // ============================================
@@ -198,62 +218,42 @@ export const getUserProfile = async (req, res) => {
 // ============================================
 // LOGIN USER
 // ============================================
-export const loginUser = async (req, res) => {
+export const loginUser = async (req: AuthRequest<LoginUserDto>, res) => {
   const { email, phone, password, identifier } = req.body;
 
   try {
+    // All validation is now handled by Zod schema in loginUserDto
+    // The middleware ensures: at least one of email/phone/identifier is provided, and password is required
+
     // Decide what the user entered: email or phone
     const query: any = {};
 
     if (email) {
-      query.email = email.toLowerCase().trim();
+      query.email = email; // Already trimmed and lowercased by Zod
     } else if (phone) {
-      query.phone = phone.trim();
+      query.phone = phone; // Already trimmed by Zod
     } else if (identifier) {
-      const trimmedIdentifier = identifier.trim();
-      if (/^\d+$/.test(trimmedIdentifier)) {
-        query.phone = trimmedIdentifier;
+      // Identifier is already trimmed by Zod
+      if (/^\d+$/.test(identifier)) {
+        query.phone = identifier;
       } else {
-        query.email = trimmedIdentifier.toLowerCase();
+        query.email = identifier.toLowerCase();
       }
-    } else {
-      return res.status(400).json({
-        message: "Email or phone is required"
-      });
     }
-
-    console.log("=== LOGIN DEBUG ===");
-    console.log("Login query:", query);
-    console.log("Password from request:", password);
 
     // Find user by either field
     const user = await User.findOne(query);
 
     if (!user) {
       console.log("❌ User not found with query:", query);
-
-      // DEBUG: Check what's actually in the database
-      const allUsers = await User.find({}).select('email phone name');
-      console.log("All users in DB:", allUsers);
-
       return res.status(401).json({ message: "Invalid credentials" });
     }
-
-    console.log("✅ User found:", {
-      id: user._id,
-      email: user.email,
-      phone: user.phone,
-      name: user.name,
-      hasPassword: !!user.password
-    });
 
     // Check if password exists
     if (!user.password) {
       console.log("❌ User has no password set");
       return res.status(401).json({ message: "Invalid credentials" });
     }
-
-    console.log("Stored password hash:", user.password);
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     console.log("Password valid:", isPasswordValid);
