@@ -280,25 +280,28 @@ export const loginUser = async (req: AuthRequest<LoginUserDto>, res) => {
   }
 };
 
+
 export const changePassword = async (req, res) => {
-  const { userId, newPassword } = req.body;
   try {
+    const { userId, newPassword } = req.body;
     if (!userId || !newPassword) {
-      return res.status(400).json({ message: "userId and newPassword are required" });
-    }
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(400).json({ message: "User ID and new password are required" });
     }
 
-    // Hash new password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(newPassword, salt);
-    user.password = hashedPassword;
-    await user.save();
+    // Hash password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // ✅ Update without triggering schema validations for consent/privacy
+    await User.findByIdAndUpdate(
+      userId,
+      { password: hashedPassword },
+      { runValidators: false } // ← THIS is the key fix
+    );
+
     res.status(200).json({ message: "Password changed successfully" });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+  } catch (err) {
+    console.error("Error changing password:", err);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
