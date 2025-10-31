@@ -33,6 +33,11 @@ app.use((req, res, next) => {
 app.use(express.json());
 app.use(cors());
 
+// add 2secs latency
+app.use((req, res, next) => {
+  setTimeout(() => next(), 2000);
+});
+
 // Swagger UI
 app.use('/api-docs', swaggerUI.serve, swaggerUI.setup(swaggerSpec));
 

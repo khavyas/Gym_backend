@@ -1,5 +1,5 @@
 import express from "express";
-import { registerUser, loginUser, changePassword, registerAdmin, verifyOtpAndRegister } from "../controllers/authController";
+import { registerUser, loginUser, changePassword, registerAdmin, verifyOtpAndRegister, getMe } from "../controllers/authController";
 import sendEmail from '../utils/sendEmail';
 import { roleCheck, protect } from "../middleware/authMiddleware";
 import { registerUserDto, registerAdminDto, loginUserDto } from "../types/user.dto";
@@ -403,5 +403,126 @@ router.get('/test-email', async (req, res) => {
         res.status(500).json({ success: false, message: error.message });
     }
 });
+
+/**
+ * @swagger
+ * /api/auth/me:
+ *   get:
+ *     tags: [Authentication]
+ *     summary: Get current authenticated user information
+ *     description: Retrieve the current authenticated user's profile information
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User information retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       example: "64f8b8c12345678901234567"
+ *                     name:
+ *                       type: string
+ *                       example: "John Doe"
+ *                     email:
+ *                       type: string
+ *                       example: "john.doe@example.com"
+ *                     phone:
+ *                       type: string
+ *                       example: "9876543210"
+ *                     age:
+ *                       type: integer
+ *                       example: 30
+ *                     gender:
+ *                       type: string
+ *                       enum: [male, female, other]
+ *                       example: "male"
+ *                     dateOfBirth:
+ *                       type: string
+ *                       format: date
+ *                       example: "1993-01-15"
+ *                     role:
+ *                       type: string
+ *                       enum: [user, admin, consultant, superadmin]
+ *                       example: "user"
+ *                     address:
+ *                       type: object
+ *                       properties:
+ *                         street:
+ *                           type: string
+ *                         city:
+ *                           type: string
+ *                         state:
+ *                           type: string
+ *                         pincode:
+ *                           type: string
+ *                     aadharNumber:
+ *                       type: string
+ *                       example: "123456789012"
+ *                     abhaId:
+ *                       type: string
+ *                       example: "12-3456-7890-1234"
+ *                     emailVerified:
+ *                       type: boolean
+ *                       example: true
+ *                     phoneVerified:
+ *                       type: boolean
+ *                       example: false
+ *                     oauthProvider:
+ *                       type: string
+ *                       enum: [google, facebook, apple]
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                     updatedAt:
+ *                       type: string
+ *                       format: date-time
+ *       401:
+ *         description: Unauthorized - authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Not authorized, no token provided"
+ *       404:
+ *         description: User not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "User not found"
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Server error while fetching user information"
+ */
+router.get('/me', protect, getMe);
 
 export default router;

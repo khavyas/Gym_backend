@@ -348,6 +348,23 @@ export const confirmOtp = async (req, res) => {
   res.json({ success: isValid, message: isValid ? "OTP verified" : "OTP invalid" });
 };
 
+// GET CURRENT USER (ME)
+export const getMe = async (req: AuthRequest, res) => {
+  try {
+    // Return user data without sensitive information
+    res.status(200).json({
+      success: true,
+      user: req.user
+    });
+  } catch (error: any) {
+    console.error('Get me error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while fetching user information'
+    });
+  }
+};
+
 // VERIFY EMAIL endpoint
 export const verifyEmail = async (req, res) => {
   const { email } = req.body;
