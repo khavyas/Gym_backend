@@ -1,5 +1,5 @@
 // controllers/profileController.js
-import Profile from '../models/Profile';
+import Profile from '../models/Profile.model';
 import mongoose from 'mongoose';
 
 // @desc Get user profile by _id

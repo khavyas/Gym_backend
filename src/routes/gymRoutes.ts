@@ -13,8 +13,133 @@ import { createGymDto } from '../types/gym.dto';
 
 const router = express.Router();
 
-
-router.get('/', getGyms);
+/**
+ * @swagger
+ * /api/gyms:
+ *   get:
+ *     tags: [Gym Management]
+ *     summary: Get all gym centers (Admin/Superadmin only)
+ *     description: Retrieve a list of all gym centers with populated admin details. Requires authentication and admin/superadmin role.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved list of gyms
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   _id:
+ *                     type: string
+ *                     description: MongoDB ObjectId of the gym
+ *                     example: "507f1f77bcf86cd799439011"
+ *                   gymId:
+ *                     type: string
+ *                     description: Unique gym identifier
+ *                     example: "GYM-123e4567-e89b-12d3-a456-426614174000"
+ *                   name:
+ *                     type: string
+ *                     description: Gym center name
+ *                     example: "FitZone Gym & Fitness"
+ *                   address:
+ *                     type: string
+ *                     description: Complete address of the gym center
+ *                     example: "123 Main Street, Downtown, Mumbai, Maharashtra 400001"
+ *                   phone:
+ *                     type: string
+ *                     description: Contact phone number
+ *                     example: "+91-9876543210"
+ *                   email:
+ *                     type: string
+ *                     description: Contact email address
+ *                     example: "contact@fitzone.com"
+ *                   admin:
+ *                     type: object
+ *                     description: Admin user details
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                         description: Admin user ID
+ *                         example: "507f1f77bcf86cd799439012"
+ *                       name:
+ *                         type: string
+ *                         description: Admin name
+ *                         example: "John Doe"
+ *                       email:
+ *                         type: string
+ *                         description: Admin email
+ *                         example: "admin@fitzone.com"
+ *                   location:
+ *                     type: object
+ *                     description: Geographic location
+ *                     properties:
+ *                       type:
+ *                         type: string
+ *                         enum: [Point]
+ *                         example: "Point"
+ *                       coordinates:
+ *                         type: array
+ *                         description: [longitude, latitude]
+ *                         items:
+ *                           type: number
+ *                         example: [72.8777, 19.0760]
+ *                   amenities:
+ *                     type: array
+ *                     description: Available amenities
+ *                     items:
+ *                       type: string
+ *                     example: ["Cardio", "Weights", "Pool", "Sauna"]
+ *                   price:
+ *                     type: number
+ *                     description: Membership price
+ *                     example: 1500
+ *                   rating:
+ *                     type: number
+ *                     description: Gym rating
+ *                     example: 4.5
+ *                   createdAt:
+ *                     type: string
+ *                     format: date-time
+ *                     description: Creation timestamp
+ *                   updatedAt:
+ *                     type: string
+ *                     format: date-time
+ *                     description: Last update timestamp
+ *       401:
+ *         description: Unauthorized - Invalid or missing token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Not authorized, no token"
+ *       403:
+ *         description: Forbidden - Insufficient permissions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Access denied. Insufficient permissions."
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Server error message"
+ */
+router.get('/', protect, roleCheck(['admin', 'superadmin']), getGyms);
 
 /**
  * @swagger

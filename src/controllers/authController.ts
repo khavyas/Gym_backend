@@ -1,10 +1,11 @@
 import { AuthRequest } from "../types/request-response.dto";
-import { RegisterAdminDto, LoginUserDto } from "../types/user.dto";
+import { RegisterAdminDto, LoginUserDto, RegisterUserDto } from "../types/user.dto";
 
-import User from '../models/User';
+import User from '../models/User.model';
 import bcrypt from 'bcrypt';
 import generateToken from '../utils/generateToken';
-import Otp from '../models/Otp';
+import Otp from '../models/Otp.model';
+import { Request } from "express";
 
 const MAX_OTP_ATTEMPTS = 5;
 const OTP_RESEND_COOLDOWN_MS = 60000; // 1 min cooldown
@@ -13,7 +14,7 @@ const OTP_RESEND_COOLDOWN_MS = 60000; // 1 min cooldown
 // ============================================
 // NEW USER REGISTRATION (Step 1: Send OTP)
 // ============================================
-export const registerUser = async (req, res) => {
+export const registerUser = async (req: AuthRequest<RegisterUserDto>, res) => {
   console.log("Incoming registration body:", req.body);
 
   const {

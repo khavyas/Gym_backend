@@ -1,4 +1,4 @@
-import WaterIntake from '../models/WaterIntake';
+import WaterIntake from '../models/WaterIntake.model';
 
 // @desc Log water intake
 export const logWaterIntake = async (req, res) => {

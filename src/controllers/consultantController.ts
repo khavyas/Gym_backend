@@ -1,6 +1,6 @@
-import Consultant from '../models/Consultant';
-import GymCenter from '../models/GymCenter';
-import User from '../models/User';
+import Consultant from '../models/Consultant.model';
+import GymCenter from '../models/Gym.model';
+import User from '../models/User.model';
 import bcrypt from 'bcrypt'; // or your password hash library
 
 

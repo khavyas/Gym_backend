@@ -1,6 +1,6 @@
 // controllers/appointmentController.js
-import Appointment from '../models/Appointment';
-import Consultant from '../models/Consultant';
+import Appointment from '../models/Appointment.model';
+import Consultant from '../models/Consultant.model';
 import mongoose from 'mongoose';
 
 // helper authorization: owner (user), consultant, or admin/superadmin

@@ -1,11 +1,11 @@
-import GymCenter from "../models/GymCenter";
-import User from "../models/User";
+import GymCenter from "../models/Gym.model";
+import User from "../models/User.model";
 import { CreateGymDto } from "../types/gym.dto";
 import { AuthRequest } from "../types/request-response.dto";
-
+import { Response } from "express";
 
 // @desc    Superadmin creates a gym and admin credentials
-export const createGym = async (req: AuthRequest<CreateGymDto>, res) => {
+export const createGym = async (req: AuthRequest<CreateGymDto>, res: Response) => {
   try {
     const { adminEmail, ...gymData } = req.body;
 
@@ -36,7 +36,7 @@ export const createGym = async (req: AuthRequest<CreateGymDto>, res) => {
 // @desc Get all gyms
 // @route GET /api/gyms
 // @access Public
-export const getGyms = async (req, res) => {
+export const getGyms = async (req: AuthRequest, res: Response) => {
   try {
     const gyms = await GymCenter.find().populate('admin', 'name email');
     res.json(gyms);
@@ -48,7 +48,7 @@ export const getGyms = async (req, res) => {
 // @desc Get a single gym by ID
 // @route GET /api/gyms/:id
 // @access Public
-export const getGymById = async (req, res) => {
+export const getGymById = async (req: AuthRequest, res: Response) => {
   try {
     const gym = await GymCenter.findById(req.params.id).populate('admin', 'name email');
     if (!gym) return res.status(404).json({ message: 'Gym not found' });
@@ -87,7 +87,7 @@ export const updateGym = async (req, res) => {
 // @desc Delete a gym
 // @route DELETE /api/gyms/:id
 // @access Private (admin only)
-export const deleteGym = async (req, res) => {
+export const deleteGym = async (req: any, res: Response) => {
   try {
     const gym = await GymCenter.findById(req.params.id);
 
