@@ -71,6 +71,7 @@ const profileSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+
 // Custom validator to require either email or phone
 profileSchema.pre('validate', function (next) {
   if (!this.email && !this.phone) {

@@ -3,6 +3,7 @@ import encrypt from 'mongoose-encryption';
 
 const userSchema = new mongoose.Schema(
   {
+    _id: mongoose.Schema.Types.ObjectId,
     name: { type: String },
     age: { type: Number },
     gender: { type: String, enum: ["male", "female", "other"], required: false },
@@ -87,6 +88,6 @@ userSchema.pre('validate', function (next) {
   next();
 });
 
-export type User = InferSchemaType<typeof userSchema>;
+export type UserType = InferSchemaType<typeof userSchema>;
 
-export default mongoose.model<User>('User', userSchema);
+export default mongoose.model<UserType>('User', userSchema);
