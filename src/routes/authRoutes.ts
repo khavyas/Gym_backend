@@ -1,8 +1,8 @@
 import express from "express";
-import { registerUser, loginUser, changePassword, registerAdmin, verifyOtpAndRegister, getMe } from "../controllers/authController";
+import { registerUser, loginUser, changePassword, registerAdmin, verifyOtpAndRegister, getMe, getAllUsers } from "../controllers/authController";
 import sendEmail from '../utils/sendEmail';
 import { roleCheck, protect } from "../middleware/authMiddleware";
-import { registerUserDto, registerAdminDto, loginUserDto } from "../types/user.dto";
+import { registerUserDto, registerAdminDto, loginUserDto, getUsersQueryDto } from "../types/user.dto";
 import { validateRequest } from "../middleware/zodValidation";
 
 const router = express.Router();
@@ -524,5 +524,163 @@ router.get('/test-email', async (req, res) => {
  *                   example: "Server error while fetching user information"
  */
 router.get('/me', protect, getMe);
+
+/**
+ * @swagger
+ * /api/auth/users:
+ *   get:
+ *     tags: [Authentication]
+ *     summary: Get all users with optional filtering and pagination
+ *     description: Retrieve a list of all users with optional filters. Requires authentication and admin/superadmin role.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: id
+ *         schema:
+ *           type: string
+ *         description: Filter by user ID
+ *       - in: query
+ *         name: name
+ *         schema:
+ *           type: string
+ *         description: Filter by name (case-insensitive partial match)
+ *       - in: query
+ *         name: email
+ *         schema:
+ *           type: string
+ *         description: Filter by email address
+ *       - in: query
+ *         name: phone
+ *         schema:
+ *           type: string
+ *         description: Filter by phone number
+ *       - in: query
+ *         name: role
+ *         schema:
+ *           type: string
+ *           enum: [user, admin, consultant, superadmin]
+ *         description: Filter by user role
+ *       - in: query
+ *         name: gender
+ *         schema:
+ *           type: string
+ *           enum: [male, female, other]
+ *         description: Filter by gender
+ *       - in: query
+ *         name: emailVerified
+ *         schema:
+ *           type: boolean
+ *         description: Filter by email verification status
+ *       - in: query
+ *         name: phoneVerified
+ *         schema:
+ *           type: boolean
+ *         description: Filter by phone verification status
+ *       - in: query
+ *         name: oauthProvider
+ *         schema:
+ *           type: string
+ *           enum: [google, facebook, apple]
+ *         description: Filter by OAuth provider
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *           minimum: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *           minimum: 1
+ *           maximum: 100
+ *         description: Number of items per page
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           default: createdAt
+ *         description: Field to sort by
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: desc
+ *         description: Sort order (ascending or descending)
+ *     responses:
+ *       200:
+ *         description: Users retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                       name:
+ *                         type: string
+ *                       email:
+ *                         type: string
+ *                       phone:
+ *                         type: string
+ *                       age:
+ *                         type: integer
+ *                       gender:
+ *                         type: string
+ *                       role:
+ *                         type: string
+ *                       emailVerified:
+ *                         type: boolean
+ *                       phoneVerified:
+ *                         type: boolean
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *                       updatedAt:
+ *                         type: string
+ *                         format: date-time
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: integer
+ *                       description: Total number of users matching the filter
+ *                     page:
+ *                       type: integer
+ *                       description: Current page number
+ *                     limit:
+ *                       type: integer
+ *                       description: Number of items per page
+ *                     totalPages:
+ *                       type: integer
+ *                       description: Total number of pages
+ *                     hasNextPage:
+ *                       type: boolean
+ *                       description: Whether there is a next page
+ *                     hasPrevPage:
+ *                       type: boolean
+ *                       description: Whether there is a previous page
+ *       400:
+ *         description: Invalid query parameters
+ *       401:
+ *         description: Unauthorized - authentication required
+ *       403:
+ *         description: Forbidden - admin/superadmin role required
+ *       500:
+ *         description: Server error
+ */
+router.get('/users', protect, roleCheck(['admin', 'superadmin']), validateRequest(getUsersQueryDto, 'query'), getAllUsers);
 
 export default router;

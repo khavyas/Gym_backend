@@ -15,11 +15,25 @@ export const validateRequest = (
             // Validate the specified part of the request
             const validated = await schema.parseAsync(req[source]);
 
-            // Replace the request data with validated (and potentially transformed) data
-            req[source] = validated;
+            // Apply validated data back to the request safely.
+            // In Express 5, `req.query` and `req.params` are getter-only. Do not reassign them, mutate instead.
+            if (source === 'body') {
+                req.body = validated as any;
+            } else {
+                const target = req[source]; // req.query or req.params
+
+                // Assign validated keys
+                if (validated && typeof validated === 'object') {
+                    for (const [key, value] of Object.entries(validated as Record<string, unknown>)) {
+                        delete target[key]; // Ensure old value is removed
+                        target[key] = value as any;
+                    }
+                }
+            }
 
             next();
         } catch (error) {
+            console.log(error);
             if (error instanceof ZodError) {
                 // Format Zod validation errors into a readable structure
 

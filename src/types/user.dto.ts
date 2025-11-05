@@ -36,7 +36,7 @@ export const registerUserDto = z.object({
     aadharNumber: z.string().optional(),
     abhaId: z.string().optional(),
     oauthProvider: z.string().optional(),
-})
+}).strict() // Disallow unknown fields
     .refine(
         (data) => data.email || data.phone,
         {
@@ -112,7 +112,7 @@ export const loginUserDto = z.object({
     password: z
         .string()
         .min(1, 'Password is required'),
-})
+}).strict()
     .refine(
         (data) => data.email || data.phone || data.identifier,
         {
@@ -205,6 +205,27 @@ export const changePasswordDto = z.object({
         .max(100, 'Password is too long'),
 });
 
+/**
+ * Get Users Query DTO
+ * Used for filtering users in the get all users endpoint
+ */
+export const getUsersQueryDto = z.object({
+    id: z.string().optional(),
+    name: z.string().optional(),
+    email: z.email('Invalid email format').toLowerCase().trim().optional(),
+    phone: z.string().trim().optional(),
+    role: z.enum(['user', 'admin', 'consultant', 'superadmin']).optional(),
+    gender: z.enum(['male', 'female', 'other']).optional(),
+    emailVerified: z.string().transform((val) => val === 'true').pipe(z.boolean()).optional(),
+    phoneVerified: z.string().transform((val) => val === 'true').pipe(z.boolean()).optional(),
+    oauthProvider: z.enum(['google', 'facebook', 'apple']).optional(),
+    // Pagination
+    page: z.string().optional().default('1').transform(Number).pipe(z.number().int().min(1)),
+    limit: z.string().optional().default('10').transform(Number).pipe(z.number().int().min(1).max(100)),
+    // Sorting
+    sortBy: z.string().optional().default('createdAt'),
+    sortOrder: z.enum(['asc', 'desc']).optional().default('desc'),
+}).strict(); // Disallow unknown query parameters
 
 // Type exports for TypeScript usage
 export type RegisterUserDto = z.infer<typeof registerUserDto>;
@@ -216,4 +237,5 @@ export type ForgotPasswordDto = z.infer<typeof forgotPasswordDto>;
 export type ResetPasswordDto = z.infer<typeof resetPasswordDto>;
 export type VerifyOtpDto = z.infer<typeof verifyOtpDto>;
 export type ChangePasswordDto = z.infer<typeof changePasswordDto>;
+export type GetUsersQueryDto = z.infer<typeof getUsersQueryDto>;
 

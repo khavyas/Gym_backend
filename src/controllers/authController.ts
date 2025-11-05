@@ -1,5 +1,5 @@
 import { AuthRequest } from "../types/request-response.dto";
-import { RegisterAdminDto, LoginUserDto, RegisterUserDto } from "../types/user.dto";
+import { RegisterAdminDto, LoginUserDto, RegisterUserDto, GetUsersQueryDto } from "../types/user.dto";
 
 import User from '../models/User.model';
 import bcrypt from 'bcrypt';
@@ -375,5 +375,81 @@ export const verifyEmail = async (req, res) => {
     res.json({ success: true, message: "Email registered" });
   } else {
     res.json({ success: false, message: "Email not registered" });
+  }
+};
+
+// ============================================
+// GET ALL USERS (with filtering and pagination)
+// ============================================
+export const getAllUsers = async (req: AuthRequest, res) => {
+  try {
+    // Type cast validated query params
+    const query = req.query as unknown as GetUsersQueryDto;
+
+    const {
+      id,
+      name,
+      email,
+      phone,
+      role,
+      gender,
+      emailVerified,
+      phoneVerified,
+      oauthProvider,
+      page,
+      limit,
+      sortBy,
+      sortOrder
+    } = query;
+
+    // Build filter object
+    const filter: any = {};
+
+    if (id) filter._id = id;
+    if (name) filter.name = { $regex: name, $options: 'i' }; // Case-insensitive search
+    if (email) filter.email = email;
+    if (phone) filter.phone = phone;
+    if (role) filter.role = role;
+    if (gender) filter.gender = gender;
+    if (emailVerified !== undefined) filter.emailVerified = emailVerified;
+    if (phoneVerified !== undefined) filter.phoneVerified = phoneVerified;
+    if (oauthProvider) filter.oauthProvider = oauthProvider;
+
+    // Calculate pagination
+    const skip = (page - 1) * limit;
+
+    // Build sort object
+    const sort: any = {};
+    sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
+
+    // Execute query with pagination
+    const users = await User.find(filter)
+      .select('-password -otp -otpAttempts') // Exclude sensitive fields
+      .sort(sort)
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    // Get total count for pagination metadata
+    const total = await User.countDocuments(filter);
+
+    res.status(200).json({
+      success: true,
+      data: users,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+        hasNextPage: page * limit < total,
+        hasPrevPage: page > 1
+      }
+    });
+  } catch (error: any) {
+    console.error('Get all users error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while fetching users'
+    });
   }
 };

@@ -12,8 +12,8 @@ export const createProfile = async (req: AuthRequest<CreateProfileDTO>, res: Res
   try {
     const { email, ...profileData } = req.body;
 
-    // Find user by email or use req.user
-    const user = req.user.role === 'user' ? req.user : await User.findOne({ email });
+    // Create profile for user making the request or for specified email
+    const user = req.user.role === 'user' ? req.user : await User.findOne({ email, role: 'user' });
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
