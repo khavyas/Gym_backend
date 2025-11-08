@@ -1,4 +1,4 @@
-import mongoose, { InferSchemaType } from 'mongoose';
+import mongoose, { Schema, Types, InferSchemaType } from 'mongoose';
 import encrypt from 'mongoose-encryption';
 
 const userSchema = new mongoose.Schema(
