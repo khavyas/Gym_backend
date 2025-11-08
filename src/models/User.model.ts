@@ -3,7 +3,7 @@ import encrypt from 'mongoose-encryption';
 
 const userSchema = new mongoose.Schema(
   {
-    // _id: mongoose.Schema.Types.ObjectId,
+    _id: new mongoose.Types.ObjectId(),
     name: { type: String },
     age: { type: Number },
     gender: { type: String, enum: ["male", "female", "other"], required: false },
