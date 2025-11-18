@@ -1,5 +1,5 @@
 import express from 'express';
-import { protect } from '../middleware/authMiddleware.js';
+import { protect } from '../middleware/authMiddleware';
 import {
   logMeal,
   logBulkMeals,
@@ -8,7 +8,7 @@ import {
   updateMeal,
   deleteMeal,
   getMealSummary,
-} from '../controllers/mealController.js';
+} from '../controllers/mealController';
 
 const router = express.Router();
 

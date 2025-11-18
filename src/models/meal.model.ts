@@ -79,4 +79,6 @@ const mealSchema = new mongoose.Schema(
 mealSchema.index({ user: 1, createdAt: -1 });
 mealSchema.index({ user: 1, mealType: 1 });
 
-export default mongoose.model('Meal', mealSchema);
+type Meal = mongoose.InferSchemaType<typeof mealSchema>;
+
+export default mongoose.model<Meal>('Meal', mealSchema);

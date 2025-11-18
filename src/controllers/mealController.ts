@@ -1,9 +1,19 @@
-import Meal from '../models/Meal.model.js';
+import { Request, Response } from 'express';
+import Meal from '../models/meal.model';
+
+// Extended Request type to include user from auth middleware
+interface AuthRequest extends Request {
+  user?: {
+    _id: string;
+    name?: string;
+    email?: string;
+  };
+}
 
 // @desc Log a single meal entry
 // @route POST /api/meals
 // @access Private
-export const logMeal = async (req, res) => {
+export const logMeal = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { 
       mealType, 
@@ -25,21 +35,23 @@ export const logMeal = async (req, res) => {
 
     // Validate required fields
     if (!mealType || !foodName) {
-      return res.status(400).json({ 
+      res.status(400).json({ 
         message: 'mealType and foodName are required' 
       });
+      return;
     }
 
     // Validate mealType
     const validMealTypes = ['breakfast', 'lunch', 'dinner', 'snack'];
     if (!validMealTypes.includes(mealType)) {
-      return res.status(400).json({ 
+      res.status(400).json({ 
         message: 'Invalid mealType. Must be: breakfast, lunch, dinner, or snack' 
       });
+      return;
     }
 
     const entry = await Meal.create({
-      user: req.user._id,
+      user: req.user!._id,
       mealType,
       foodName,
       calories: calories || 0,
@@ -58,7 +70,7 @@ export const logMeal = async (req, res) => {
     });
 
     res.status(201).json(entry);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error logging meal:', error);
     res.status(500).json({ message: error.message });
   }
@@ -67,28 +79,30 @@ export const logMeal = async (req, res) => {
 // @desc Log multiple meal entries at once (for AI-detected foods)
 // @route POST /api/meals/bulk
 // @access Private
-export const logBulkMeals = async (req, res) => {
+export const logBulkMeals = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { mealType, meals, imageId } = req.body;
 
     // Validate required fields
     if (!mealType || !meals || !Array.isArray(meals) || meals.length === 0) {
-      return res.status(400).json({ 
+      res.status(400).json({ 
         message: 'mealType and meals array are required' 
       });
+      return;
     }
 
     // Validate mealType
     const validMealTypes = ['breakfast', 'lunch', 'dinner', 'snack'];
     if (!validMealTypes.includes(mealType)) {
-      return res.status(400).json({ 
+      res.status(400).json({ 
         message: 'Invalid mealType. Must be: breakfast, lunch, dinner, or snack' 
       });
+      return;
     }
 
     // Prepare meal entries
-    const mealEntries = meals.map(meal => ({
-      user: req.user._id,
+    const mealEntries = meals.map((meal: any) => ({
+      user: req.user!._id,
       mealType,
       foodName: meal.name || meal.foodName,
       calories: meal.calories || 0,
@@ -114,7 +128,7 @@ export const logBulkMeals = async (req, res) => {
       meals: savedEntries,
       count: savedEntries.length,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error logging bulk meals:', error);
     res.status(500).json({ message: error.message });
   }
@@ -123,15 +137,15 @@ export const logBulkMeals = async (req, res) => {
 // @desc Get all meals for logged-in user (with optional filters)
 // @route GET /api/meals?date=YYYY-MM-DD&mealType=breakfast
 // @access Private
-export const getMyMeals = async (req, res) => {
+export const getMyMeals = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { date, mealType, from, to } = req.query;
     
-    const filter = { user: req.user._id };
+    const filter: any = { user: req.user!._id };
 
     // Filter by specific date (defaults to today)
     if (date || (!from && !to)) {
-      const targetDate = date ? new Date(date) : new Date();
+      const targetDate = date ? new Date(date as string) : new Date();
       const startOfDay = new Date(targetDate);
       startOfDay.setHours(0, 0, 0, 0);
       
@@ -144,17 +158,18 @@ export const getMyMeals = async (req, res) => {
     // Filter by date range
     if (from || to) {
       filter.createdAt = {};
-      if (from) filter.createdAt.$gte = new Date(from);
-      if (to) filter.createdAt.$lte = new Date(to);
+      if (from) filter.createdAt.$gte = new Date(from as string);
+      if (to) filter.createdAt.$lte = new Date(to as string);
     }
 
     // Filter by meal type
     if (mealType) {
       const validMealTypes = ['breakfast', 'lunch', 'dinner', 'snack'];
-      if (!validMealTypes.includes(mealType)) {
-        return res.status(400).json({ 
+      if (!validMealTypes.includes(mealType as string)) {
+        res.status(400).json({ 
           message: 'Invalid mealType. Must be: breakfast, lunch, dinner, or snack' 
         });
+        return;
       }
       filter.mealType = mealType;
     }
@@ -164,7 +179,7 @@ export const getMyMeals = async (req, res) => {
       .populate('user', 'name email');
 
     res.json(meals);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching meals:', error);
     res.status(500).json({ message: error.message });
   }
@@ -173,22 +188,24 @@ export const getMyMeals = async (req, res) => {
 // @desc Get single meal by ID
 // @route GET /api/meals/:id
 // @access Private
-export const getMealById = async (req, res) => {
+export const getMealById = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const meal = await Meal.findById(req.params.id)
       .populate('user', 'name email');
 
     if (!meal) {
-      return res.status(404).json({ message: 'Meal not found' });
+      res.status(404).json({ message: 'Meal not found' });
+      return;
     }
 
     // Ensure user owns this meal
-    if (meal.user._id.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: 'Not authorized to view this meal' });
+    if (meal.user._id.toString() !== req.user!._id.toString()) {
+      res.status(403).json({ message: 'Not authorized to view this meal' });
+      return;
     }
 
     res.json(meal);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching meal:', error);
     res.status(500).json({ message: error.message });
   }
@@ -197,17 +214,19 @@ export const getMealById = async (req, res) => {
 // @desc Update a meal entry
 // @route PATCH /api/meals/:id
 // @access Private
-export const updateMeal = async (req, res) => {
+export const updateMeal = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const meal = await Meal.findById(req.params.id);
 
     if (!meal) {
-      return res.status(404).json({ message: 'Meal not found' });
+      res.status(404).json({ message: 'Meal not found' });
+      return;
     }
 
     // Ensure user owns this meal
-    if (meal.user.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: 'Not authorized to update this meal' });
+    if (meal.user.toString() !== req.user!._id.toString()) {
+      res.status(403).json({ message: 'Not authorized to update this meal' });
+      return;
     }
 
     // Update allowed fields
@@ -219,14 +238,14 @@ export const updateMeal = async (req, res) => {
 
     allowedUpdates.forEach(field => {
       if (req.body[field] !== undefined) {
-        meal[field] = req.body[field];
+        (meal as any)[field] = req.body[field];
       }
     });
 
     await meal.save();
 
     res.json(meal);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error updating meal:', error);
     res.status(500).json({ message: error.message });
   }
@@ -235,22 +254,24 @@ export const updateMeal = async (req, res) => {
 // @desc Delete a meal entry
 // @route DELETE /api/meals/:id
 // @access Private
-export const deleteMeal = async (req, res) => {
+export const deleteMeal = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const meal = await Meal.findById(req.params.id);
 
     if (!meal) {
-      return res.status(404).json({ message: 'Meal not found' });
+      res.status(404).json({ message: 'Meal not found' });
+      return;
     }
 
     // Ensure user owns this meal
-    if (meal.user.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: 'Not authorized to delete this meal' });
+    if (meal.user.toString() !== req.user!._id.toString()) {
+      res.status(403).json({ message: 'Not authorized to delete this meal' });
+      return;
     }
 
     await meal.deleteOne();
     res.json({ message: 'Meal entry removed successfully' });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error deleting meal:', error);
     res.status(500).json({ message: error.message });
   }
@@ -259,11 +280,11 @@ export const deleteMeal = async (req, res) => {
 // @desc Get nutrition summary for a date range
 // @route GET /api/meals/summary
 // @access Private
-export const getMealSummary = async (req, res) => {
+export const getMealSummary = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { from, to } = req.query;
     
-    const filter = { user: req.user._id };
+    const filter: any = { user: req.user!._id };
 
     // Default to today if no date range provided
     if (!from && !to) {
@@ -274,8 +295,8 @@ export const getMealSummary = async (req, res) => {
       filter.createdAt = { $gte: startOfDay, $lte: endOfDay };
     } else {
       filter.createdAt = {};
-      if (from) filter.createdAt.$gte = new Date(from);
-      if (to) filter.createdAt.$lte = new Date(to);
+      if (from) filter.createdAt.$gte = new Date(from as string);
+      if (to) filter.createdAt.$lte = new Date(to as string);
     }
 
     const summary = await Meal.aggregate([
@@ -317,7 +338,7 @@ export const getMealSummary = async (req, res) => {
       byMealType: summary,
       overall: overallTotals,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error getting meal summary:', error);
     res.status(500).json({ message: error.message });
   }
