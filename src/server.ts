@@ -7,7 +7,7 @@ import consultantRoutes from "./routes/consultantRoutes";
 import profileRoutes from "./routes/profileRoutes";
 import cors from "cors";
 import gymRoutes from './routes/gymRoutes';
-import appointmentRoutes from './routes/appointmentRoutes';
+import appointmentRoutes from './routes/appointmentRoutes'; 
 import swaggerUI from 'swagger-ui-express';
 import swaggerSpec from './config/swagger';
 import authRoutes from './routes/authRoutes';
@@ -52,6 +52,7 @@ app.use("/api/consultants", consultantRoutes);
 app.use("/api/profile", profileRoutes);
 app.use('/api/gyms', gymRoutes);
 app.use('/api/metrics', metricsRoutes);
+app.use('/api/appointments', appointmentRoutes);  
 
 // 404 handler
 app.use((req, res) => {
@@ -232,7 +233,7 @@ const insertDummyData = async () => {
         updatedAt: new Date()
       }
     ]
-    ); // Dummy operation to ensure model is used
+    );
   } catch (error) {
     console.error('Error inserting dummy data:', error);
   }
