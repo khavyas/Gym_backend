@@ -1,4 +1,4 @@
-// models/Profile.js
+// models/Profile.model.ts
 import mongoose from 'mongoose';
 
 const profileSchema = new mongoose.Schema(
@@ -22,6 +22,7 @@ const profileSchema = new mongoose.Schema(
     phone: { type: String },
     bio: { type: String },
     profileImage: { type: String },
+    dateOfBirth: { type: String }, // ADDED: Missing field from frontend
     aadharNumber: { type: String, minlength: 12, maxlength: 12, match: /^[0-9]{12}$/ },
     abhaId: { type: String }, // Optional: For ABDM/NDHM Health ID
 
@@ -61,16 +62,15 @@ const profileSchema = new mongoose.Schema(
       pincode: { type: String }
     },
 
-    lastlogin: { type: Date },                    //for activity tracking
-    logincount: { type: Number, default: 0 },     //Analytics
-    membershipStatus: { type: String, enum: ["active", "trial", "suspended"], default: "active" }, //Membership management
-    badgeCount: { type: Number, default: 0 }, //Gamification
-    achievements: [String], //Gamification
-    referralCode: { type: String, unique: true, sparse: true }, //Referral system
+    lastlogin: { type: Date },
+    logincount: { type: Number, default: 0 },
+    membershipStatus: { type: String, enum: ["active", "trial", "suspended"], default: "active" },
+    badgeCount: { type: Number, default: 0 },
+    achievements: [String],
+    referralCode: { type: String, unique: true, sparse: true },
   },
   { timestamps: true }
 );
-
 
 // Custom validator to require either email or phone
 profileSchema.pre('validate', function (next) {
