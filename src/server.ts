@@ -16,6 +16,7 @@ import metricsRoutes from './routes/metricsRoutes';
 import UserModel from "./models/User.model";
 import mongoose from "mongoose";
 import workoutRoutes from './routes/workoutRoutes';
+import wellnessRoutes from './routes/wellnessRoutes';
 
 dotenv.config();
 connectDB();
@@ -57,6 +58,7 @@ app.use('/api/metrics', metricsRoutes);
 app.use('/api/appointments', appointmentRoutes);  
 app.use('/api/meals', mealRoutes);  
 app.use('/api/workouts', workoutRoutes);
+app.use('/api/wellness', wellnessRoutes);
 
 // 404 handler
 app.use((req, res) => {
