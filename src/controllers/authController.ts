@@ -1,18 +1,19 @@
 import { AuthRequest } from "../types/request-response.dto";
 import { RegisterAdminDto, LoginUserDto, RegisterUserDto, GetUsersQueryDto } from "../types/user.dto";
-
 import User from '../models/User.model';
+import Profile from '../models/Profile.model'; // ADD THIS IMPORT
 import bcrypt from 'bcrypt';
 import generateToken from '../utils/generateToken';
 import Otp from '../models/Otp.model';
 import { Request } from "express";
 
 const MAX_OTP_ATTEMPTS = 5;
-const OTP_RESEND_COOLDOWN_MS = 60000; // 1 min cooldown
+const OTP_RESEND_COOLDOWN_MS = 60000;
 // const sendMail = require('../utils/sendMail'); // Uncomment when using email
 
+
 // ============================================
-// NEW USER REGISTRATION (Step 1: Send OTP)
+// NEW USER REGISTRATION (with automatic Profile creation)
 // ============================================
 export const registerUser = async (req: AuthRequest<RegisterUserDto>, res) => {
   console.log("Incoming registration body:", req.body);
@@ -23,8 +24,6 @@ export const registerUser = async (req: AuthRequest<RegisterUserDto>, res) => {
   } = req.body;
 
   try {
-    // All validation is now handled by Zod schema in user.dto.ts
-    // The middleware ensures: consent, privacyNoticeAccepted, email/phone requirement, password requirement
     // Build filter only for non-empty supplied fields
     let filters = [];
     if (email) filters.push({ email: email.toLowerCase().trim() });
@@ -41,6 +40,7 @@ export const registerUser = async (req: AuthRequest<RegisterUserDto>, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
+    // CREATE USER
     const user = await User.create({
       name,
       age,
@@ -55,6 +55,62 @@ export const registerUser = async (req: AuthRequest<RegisterUserDto>, res) => {
       ...rest
     });
 
+    // ✅ AUTOMATICALLY CREATE PROFILE FOR THE USER
+    try {
+      const newProfile = await Profile.create({
+        userId: user._id,
+        fullName: name,
+        email: email,
+        phone: phone || "",
+        bio: "",
+        profileImage: null,
+        dateOfBirth: "",
+        aadharNumber: aadharNumber || "",
+        abhaId: abhaId || "",
+        healthMetrics: {
+          weight: "",
+          height: "",
+          age: age?.toString() || "",
+          gender: "male",
+          fitnessGoal: "general_fitness"
+        },
+        workPreferences: {
+          occupation: "other",
+          workoutTiming: "morning",
+          availableDays: [],
+          workStressLevel: "medium",
+          sedentaryHours: "6-8",
+          workoutLocation: "gym"
+        },
+        notifications: {
+          workoutReminders: true,
+          newContent: true,
+          promotionOffers: false,
+          appointmentReminders: true
+        },
+        security: {
+          biometricLogin: false,
+          twoFactorAuth: false
+        },
+        address: {
+          street: "",
+          city: "",
+          state: "",
+          pincode: ""
+        },
+        membershipStatus: "trial",
+        badgeCount: 0,
+        achievements: [],
+        logincount: 0
+      });
+
+      console.log("✅ Profile created automatically for user:", user._id);
+    } catch (profileError) {
+      console.error("⚠️ Failed to create profile, but user was created:", profileError);
+      // Don't fail registration if profile creation fails
+      // Profile can be created later manually
+    }
+
     res.status(201).json({
       userId: user._id,
       name: user.name,
@@ -67,7 +123,7 @@ export const registerUser = async (req: AuthRequest<RegisterUserDto>, res) => {
   }
 };
 
-// @desc Register new admin
+// @desc Register new admin (with automatic Profile creation)
 export const registerAdmin = async (req: AuthRequest<RegisterAdminDto>, res) => {
   console.log("Incoming admin registration body:", req.body);
 
@@ -99,12 +155,39 @@ export const registerAdmin = async (req: AuthRequest<RegisterAdminDto>, res) => 
       phone: phone,
       email: email.toLowerCase().trim(),
       password: hashedPassword,
-      role: 'admin', // Set role as admin
-      consent: true, // Admins implicitly consent
+      role: 'admin',
+      consent: true,
       privacyNoticeAccepted: true,
-      emailVerified: true, // Admins are pre-verified
+      emailVerified: true,
       phoneVerified: phone ? true : false,
     });
+
+    // ✅ AUTOMATICALLY CREATE PROFILE FOR ADMIN
+    try {
+      await Profile.create({
+        userId: admin._id,
+        fullName: name,
+        email: email.toLowerCase().trim(),
+        phone: phone || "",
+        bio: "System Administrator",
+        profileImage: null,
+        healthMetrics: {
+          weight: "",
+          height: "",
+          age: age?.toString() || "",
+          gender: "male",
+          fitnessGoal: "general_fitness"
+        },
+        membershipStatus: "active",
+        badgeCount: 0,
+        achievements: [],
+        logincount: 0
+      });
+
+      console.log("✅ Profile created automatically for admin:", admin._id);
+    } catch (profileError) {
+      console.error("⚠️ Failed to create profile for admin:", profileError);
+    }
 
     res.status(201).json({
       userId: admin._id,

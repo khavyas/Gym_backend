@@ -12,19 +12,25 @@ const profileSchema = new mongoose.Schema(
     fullName: {
       type: String,
       required: false,
-      immutable: true,
+      // REMOVED immutable: true to allow sync from User table
     },
     email: {
       type: String,
-      unique: true,
-      immutable: true,
+      required: false,
+      // REMOVED unique and immutable to allow flexibility
     },
     phone: { type: String },
     bio: { type: String },
     profileImage: { type: String },
-    dateOfBirth: { type: String }, // ADDED: Missing field from frontend
-    aadharNumber: { type: String, minlength: 12, maxlength: 12, match: /^[0-9]{12}$/ },
-    abhaId: { type: String }, // Optional: For ABDM/NDHM Health ID
+    dateOfBirth: { type: String },
+    aadharNumber: { 
+      type: String, 
+      minlength: 12, 
+      maxlength: 12, 
+      match: /^[0-9]{12}$/,
+      required: false
+    },
+    abhaId: { type: String },
 
     healthMetrics: {
       weight: String,
@@ -59,12 +65,22 @@ const profileSchema = new mongoose.Schema(
       street: { type: String },
       city: { type: String },
       state: { type: String },
-      pincode: { type: String }
+      pincode: { 
+        type: String,
+        minlength: 6,
+        maxlength: 6,
+        match: /^[0-9]{6}$/,
+        required: false
+      }
     },
 
     lastlogin: { type: Date },
     logincount: { type: Number, default: 0 },
-    membershipStatus: { type: String, enum: ["active", "trial", "suspended"], default: "active" },
+    membershipStatus: { 
+      type: String, 
+      enum: ["active", "trial", "suspended"], 
+      default: "trial" 
+    },
     badgeCount: { type: Number, default: 0 },
     achievements: [String],
     referralCode: { type: String, unique: true, sparse: true },
@@ -72,12 +88,7 @@ const profileSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Custom validator to require either email or phone
-profileSchema.pre('validate', function (next) {
-  if (!this.email && !this.phone) {
-    next(new Error('Either email or phone is required'));
-  }
-  next();
-});
+// Remove the pre-validate hook that requires email or phone
+// The User model already handles this validation
 
 export default mongoose.model("Profile", profileSchema);
