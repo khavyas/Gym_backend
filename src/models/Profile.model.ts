@@ -12,25 +12,40 @@ const profileSchema = new mongoose.Schema(
     fullName: {
       type: String,
       required: false,
-      // REMOVED immutable: true to allow sync from User table
     },
     email: {
       type: String,
       required: false,
-      // REMOVED unique and immutable to allow flexibility
     },
     phone: { type: String },
     bio: { type: String },
     profileImage: { type: String },
     dateOfBirth: { type: String },
     aadharNumber: { 
-      type: String, 
-      // minlength: 12, 
-      // maxlength: 12, 
-      // match: /^[0-9]{12}$/
-      default: ''
+      type: String,
+      default: '',
+      validate: {
+        validator: function(v: string) {
+          // Only validate if value is provided and not empty
+          if (!v || v.length === 0) return true;
+          return v.length === 12 && /^[0-9]{12}$/.test(v);
+        },
+        message: 'Aadhar number must be exactly 12 digits'
+      }
     },
-    abhaId: { type: String },
+    abhaId: { 
+      type: String,
+      default: '',
+      validate: {
+        validator: function(v: string) {
+          // Only validate if value is provided and not empty
+          if (!v || v.length === 0) return true;
+          // Add your ABHA ID validation logic here
+          return v.length >= 14; // Example: ABHA is typically 14 digits
+        },
+        message: 'ABHA ID must be at least 14 characters'
+      }
+    },
 
     healthMetrics: {
       weight: String,
@@ -68,10 +83,14 @@ const profileSchema = new mongoose.Schema(
       pincode: { 
         type: String, 
         default: '',
-        minlength: function() {
-          return this.address?.pincode && this.address.pincode.length > 0 ? 6 : 0;
-        },
-        maxlength: 6 
+        validate: {
+          validator: function(v: string) {
+            // Only validate if value is provided and not empty
+            if (!v || v.length === 0) return true;
+            return v.length === 6 && /^[0-9]{6}$/.test(v);
+          },
+          message: 'Pincode must be exactly 6 digits'
+        }
       }
     },
 
@@ -88,8 +107,5 @@ const profileSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
-
-// Remove the pre-validate hook that requires email or phone
-// The User model already handles this validation
 
 export default mongoose.model("Profile", profileSchema);
