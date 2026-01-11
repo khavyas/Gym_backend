@@ -1,6 +1,6 @@
 import express from "express";
 import { protect } from "../middleware/authMiddleware";
-import { createConsultant, getConsultants, getConsultantById, updateConsultant, adminOnboardConsultant } from "../controllers/consultantController";
+import { createConsultant, getConsultants, getConsultantById, updateConsultant, adminOnboardConsultant, getConsultantByUserId } from "../controllers/consultantController";
 
 const router = express.Router();
 
@@ -371,6 +371,8 @@ router.post("/", protect, createConsultant);
  *         description: Server error
  */
 router.get("/", getConsultants);
+
+router.get("/user/:userId", protect, getConsultantByUserId);
 
 /**
  * @swagger

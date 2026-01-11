@@ -187,3 +187,20 @@ export const updateConsultant = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+// @desc Get consultant profile by user ID
+export const getConsultantByUserId = async (req, res) => {
+  try {
+    const consultant = await Consultant.findOne({ user: req.params.userId })
+      .populate('user', 'name email role')
+      .populate('gym', 'name address');
+    
+    if (!consultant) {
+      return res.status(404).json({ message: 'Consultant profile not found' });
+    }
+    
+    res.json(consultant);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
