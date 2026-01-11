@@ -129,7 +129,7 @@ export const registerUser = async (req: AuthRequest<RegisterUserDto>, res) => {
         // Build consultant profile with proper defaults
         const consultantData = {
           user: user._id,
-          gym: gym || undefined,
+          gym: gym || '6782ba6ab378969cb55dde21',
           name: name,
           specialty: specialty || 'General Consultant', // Use extracted specialty
           description: description || '',

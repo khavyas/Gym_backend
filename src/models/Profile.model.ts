@@ -25,10 +25,10 @@ const profileSchema = new mongoose.Schema(
     dateOfBirth: { type: String },
     aadharNumber: { 
       type: String, 
-      minlength: 12, 
-      maxlength: 12, 
-      match: /^[0-9]{12}$/,
-      required: false
+      // minlength: 12, 
+      // maxlength: 12, 
+      // match: /^[0-9]{12}$/
+      default: ''
     },
     abhaId: { type: String },
 
@@ -62,15 +62,16 @@ const profileSchema = new mongoose.Schema(
     },
 
     address: {
-      street: { type: String },
-      city: { type: String },
-      state: { type: String },
+      street: { type: String, default: '' },
+      city: { type: String, default: '' },
+      state: { type: String, default: '' },
       pincode: { 
-        type: String,
-        minlength: 6,
-        maxlength: 6,
-        match: /^[0-9]{6}$/,
-        required: false
+        type: String, 
+        default: '',
+        minlength: function() {
+          return this.address?.pincode && this.address.pincode.length > 0 ? 6 : 0;
+        },
+        maxlength: 6 
       }
     },
 
