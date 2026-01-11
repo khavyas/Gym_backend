@@ -4,6 +4,7 @@ import { z } from 'zod';
  * User Registration DTO
  * Used when creating a new user account
  * Includes Indian standards/ABDM compliance fields
+ * Also includes consultant-specific fields when role is 'consultant'
  */
 export const registerUserDto = z.object({
     name: z.string().min(1, 'Name is required').max(100, 'Name is too long'),
@@ -20,7 +21,7 @@ export const registerUserDto = z.object({
         .max(100, 'Password is too long')
         .optional(), // Optional because OAuth users may not have password
     role: z
-        .enum(['user', 'consultant'])
+        .enum(['user', 'consultant', 'admin'])
         .default('user')
         .optional(),
     consent: z
@@ -36,6 +37,17 @@ export const registerUserDto = z.object({
     aadharNumber: z.string().optional(),
     abhaId: z.string().optional(),
     oauthProvider: z.string().optional(),
+    
+    // Consultant-specific fields
+    gym: z.string().optional(), // MongoDB ObjectId as string
+    specialty: z.string().optional(), // e.g., 'Nutritionist', 'Yoga Trainer'
+    description: z.string().optional(),
+    gender: z.enum(['male', 'female', 'other']).optional(),
+    yearsOfExperience: z.number().int().min(0).max(50).optional(),
+    certifications: z.array(z.string()).optional(),
+    modeOfTraining: z.enum(['online', 'offline', 'hybrid']).optional(),
+    location: z.string().optional(), // e.g., 'Mumbai, India'
+    website: z.string().url('Invalid website URL').optional(),
 }).strict() // Disallow unknown fields
     .refine(
         (data) => data.email || data.phone,
@@ -49,6 +61,19 @@ export const registerUserDto = z.object({
         {
             message: 'Password is required unless using OAuth login.',
             path: ['password'],
+        }
+    )
+    .refine(
+        (data) => {
+            // If role is consultant, specialty is required
+            if (data.role === 'consultant' && !data.specialty) {
+                return false;
+            }
+            return true;
+        },
+        {
+            message: 'Specialty is required for consultant registration',
+            path: ['specialty'],
         }
     );
 
@@ -66,12 +91,35 @@ export const verifyOtpAndRegisterDto = z.object({
     aadharNumber: z.string().optional(),
     abhaId: z.string().optional(),
     password: z.string().min(6, 'Password must be at least 6 characters').max(100, 'Password is too long').optional(),
+    
+    // Consultant-specific fields for OTP registration
+    gym: z.string().optional(),
+    specialty: z.string().optional(),
+    description: z.string().optional(),
+    gender: z.enum(['male', 'female', 'other']).optional(),
+    yearsOfExperience: z.number().int().min(0).max(50).optional(),
+    certifications: z.array(z.string()).optional(),
+    modeOfTraining: z.enum(['online', 'offline', 'hybrid']).optional(),
+    location: z.string().optional(),
+    website: z.string().url('Invalid website URL').optional(),
 })
     .refine(
         (data) => data.email || data.phone,
         {
             message: 'Either email or phone is required',
             path: ['email'],
+        }
+    )
+    .refine(
+        (data) => {
+            if (data.role === 'consultant' && !data.specialty) {
+                return false;
+            }
+            return true;
+        },
+        {
+            message: 'Specialty is required for consultant registration',
+            path: ['specialty'],
         }
     );
 
@@ -238,4 +286,3 @@ export type ResetPasswordDto = z.infer<typeof resetPasswordDto>;
 export type VerifyOtpDto = z.infer<typeof verifyOtpDto>;
 export type ChangePasswordDto = z.infer<typeof changePasswordDto>;
 export type GetUsersQueryDto = z.infer<typeof getUsersQueryDto>;
-

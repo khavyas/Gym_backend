@@ -20,7 +20,11 @@ export const registerUser = async (req: AuthRequest<RegisterUserDto>, res) => {
 
   const {
     name, age, phone, email, password, role,
-    consent, privacyNoticeAccepted, aadharNumber, abhaId, ...rest
+    consent, privacyNoticeAccepted, aadharNumber, abhaId,
+    // Extract consultant-specific fields
+    gym, specialty, description, gender, yearsOfExperience,
+    certifications, modeOfTraining, location, website,
+    ...rest
   } = req.body;
 
   try {
@@ -29,7 +33,6 @@ export const registerUser = async (req: AuthRequest<RegisterUserDto>, res) => {
     if (email) filters.push({ email: email.toLowerCase().trim() });
     if (phone) filters.push({ phone: phone.trim() });
 
-    // Only check if any value is supplied
     if (filters.length > 0) {
       const userExists = await User.findOne({ $or: filters });
       if (userExists) {
@@ -71,7 +74,7 @@ export const registerUser = async (req: AuthRequest<RegisterUserDto>, res) => {
           weight: "",
           height: "",
           age: age?.toString() || "",
-          gender: "male",
+          gender: gender || "male",
           fitnessGoal: "general_fitness"
         },
         workPreferences: {
@@ -107,10 +110,78 @@ export const registerUser = async (req: AuthRequest<RegisterUserDto>, res) => {
       console.log("✅ Profile created automatically for user:", user._id);
     } catch (profileError) {
       console.error("⚠️ Failed to create profile, but user was created:", profileError);
-      // Don't fail registration if profile creation fails
-      // Profile can be created later manually
     }
 
+    // ✅ IF ROLE IS CONSULTANT, CREATE CONSULTANT PROFILE TOO
+    if (role === 'consultant') {
+      try {
+        // Validate gym ID if provided
+        if (gym) {
+          const GymCenter = require('../models/Gym.model').default;
+          const gymExists = await GymCenter.findById(gym);
+          if (!gymExists) {
+            console.error("⚠️ Invalid gym ID provided during consultant registration");
+          }
+        }
+
+        const Consultant = require('../models/Consultant.model').default;
+        
+        // Build consultant profile with proper defaults
+        const consultantData = {
+          user: user._id,
+          gym: gym || undefined,
+          name: name,
+          specialty: specialty || 'General Consultant', // Use extracted specialty
+          description: description || '',
+          gender: gender || undefined,
+          yearsOfExperience: yearsOfExperience || 0,
+          certifications: certifications || [],
+          modeOfTraining: modeOfTraining || 'online',
+          contact: {
+            phone: phone || '',
+            email: email || '',
+            location: location || '',
+            website: website || ''
+          },
+          consent: consent ?? true,
+          privacyNoticeAccepted: privacyNoticeAccepted ?? true,
+          createdBy: user._id,
+          lastModifiedBy: user._id
+        };
+
+        const consultantProfile = await Consultant.create(consultantData);
+
+        console.log("✅ Consultant profile created automatically:", consultantProfile._id);
+        
+        // Return consultant info in response
+        return res.status(201).json({
+          userId: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          token: generateToken(user._id),
+          consultantId: consultantProfile._id,
+          gymId: gym || null
+        });
+        
+      } catch (consultantError) {
+        console.error("⚠️ Failed to create consultant profile:", consultantError.message);
+        console.error("Full error:", consultantError);
+        
+        // Return response with warning
+        return res.status(201).json({
+          userId: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          token: generateToken(user._id),
+          warning: 'User created but consultant profile needs to be completed',
+          error: consultantError.message
+        });
+      }
+    }
+
+    // For non-consultant users
     res.status(201).json({
       userId: user._id,
       name: user.name,
@@ -119,6 +190,7 @@ export const registerUser = async (req: AuthRequest<RegisterUserDto>, res) => {
       token: generateToken(user._id),
     });
   } catch (error) {
+    console.error("Registration error:", error);
     res.status(500).json({ message: error.message });
   }
 };
