@@ -4,7 +4,7 @@ import { z } from 'zod';
  * User Registration DTO
  * Used when creating a new user account
  * Includes Indian standards/ABDM compliance fields
- * Also includes consultant-specific fields when role is 'consultant'
+ * Consultant-specific fields are optional and can be filled later in profile
  */
 export const registerUserDto = z.object({
     name: z.string().min(1, 'Name is required').max(100, 'Name is too long'),
@@ -38,7 +38,7 @@ export const registerUserDto = z.object({
     abhaId: z.string().optional(),
     oauthProvider: z.string().optional(),
     
-    // Consultant-specific fields
+    // Consultant-specific fields - ALL OPTIONAL, filled later in profile
     gym: z.string().optional(), // MongoDB ObjectId as string
     specialty: z.string().optional(), // e.g., 'Nutritionist', 'Yoga Trainer'
     description: z.string().optional(),
@@ -62,20 +62,8 @@ export const registerUserDto = z.object({
             message: 'Password is required unless using OAuth login.',
             path: ['password'],
         }
-    )
-    .refine(
-        (data) => {
-            // If role is consultant, specialty is required
-            if (data.role === 'consultant' && !data.specialty) {
-                return false;
-            }
-            return true;
-        },
-        {
-            message: 'Specialty is required for consultant registration',
-            path: ['specialty'],
-        }
     );
+    // ❌ REMOVED specialty validation - it's optional during registration
 
 /**
  * Verify OTP and Register DTO
@@ -92,7 +80,7 @@ export const verifyOtpAndRegisterDto = z.object({
     abhaId: z.string().optional(),
     password: z.string().min(6, 'Password must be at least 6 characters').max(100, 'Password is too long').optional(),
     
-    // Consultant-specific fields for OTP registration
+    // Consultant-specific fields for OTP registration - ALL OPTIONAL
     gym: z.string().optional(),
     specialty: z.string().optional(),
     description: z.string().optional(),
@@ -109,19 +97,8 @@ export const verifyOtpAndRegisterDto = z.object({
             message: 'Either email or phone is required',
             path: ['email'],
         }
-    )
-    .refine(
-        (data) => {
-            if (data.role === 'consultant' && !data.specialty) {
-                return false;
-            }
-            return true;
-        },
-        {
-            message: 'Specialty is required for consultant registration',
-            path: ['specialty'],
-        }
     );
+    // ❌ REMOVED specialty validation here too
 
 export const registerAdminDto = z.object({
     name: z.string().min(1, 'Name is required').max(100, 'Name is too long'),
