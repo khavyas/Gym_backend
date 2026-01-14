@@ -94,6 +94,7 @@ export const createAppointment = async (req, res) => {
 
 
 // Get appointments (filters: userId, consultantId, status, from, to)
+// Get appointments (filters: userId, consultantId, status, from, to)
 export const getAppointments = async (req, res) => {
   try {
     const { userId, consultantId, status, from, to } = req.query;
@@ -108,9 +109,38 @@ export const getAppointments = async (req, res) => {
       if (to) filter['startAt'].$lte = new Date(to);
     }
 
-    // restrict for non-admins: only appointments user is involved in
+    // ✅ FIX: For non-admins, combine consultantId filter with authorization
     if (!['admin', 'superadmin'].includes(req.user.role)) {
-      filter['$or'] = [{ user: req.user._id }, { consultant: req.user._id }];
+      // If consultantId is provided in query, verify user has access to it
+      if (consultantId) {
+        // Check if the consultantId belongs to this user
+        const consultant = await Consultant.findById(consultantId);
+        if (!consultant) {
+          return res.status(404).json({ message: 'Consultant not found' });
+        }
+        
+        // Verify the consultant belongs to the logged-in user
+        if (String(consultant.user) !== String(req.user._id)) {
+          return res.status(403).json({ message: 'Access denied to this consultant' });
+        }
+        // If authorized, keep the consultantId filter as-is
+      } else {
+        // If no consultantId provided, show all appointments user is involved in
+        filter['$or'] = [
+          { user: req.user._id }, 
+          // Find consultant documents where user = req.user._id
+          // This requires a separate lookup
+        ];
+        
+        // Better approach: find consultant IDs for this user first
+        const userConsultants = await Consultant.find({ user: req.user._id });
+        const consultantIds = userConsultants.map(c => c._id);
+        
+        filter['$or'] = [
+          { user: req.user._id },
+          { consultant: { $in: consultantIds } }
+        ];
+      }
     }
 
     const appointments = await Appointment.find(filter)
@@ -120,6 +150,7 @@ export const getAppointments = async (req, res) => {
 
     res.json(appointments);
   } catch (err) {
+    console.error('getAppointments error:', err);
     res.status(500).json({ message: err.message });
   }
 };
