@@ -129,15 +129,35 @@ export const createConsultant = async (req, res) => {
 };
 
 
-// @desc Get all consultants
+// In getConsultants function, add support for userId query
 export const getConsultants = async (req, res) => {
   try {
-    const consultants = await Consultant.find().populate('user', 'name email role');
+    const { userId, specialty, verified } = req.query;
+    const filter = {};
+
+    if (userId) filter['user'] = userId; // Query by user field
+    if (specialty) filter['specialty'] = specialty;
+    if (verified !== undefined) filter['isVerified'] = verified === 'true';
+
+    const consultants = await Consultant.find(filter)
+      .populate('user', 'name email')
+      .sort({ createdAt: -1 });
+
     res.json(consultants);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
+
+// // @desc Get all consultants
+// export const getConsultants = async (req, res) => {
+//   try {
+//     const consultants = await Consultant.find().populate('user', 'name email role');
+//     res.json(consultants);
+//   } catch (err) {
+//     res.status(500).json({ message: err.message });
+//   }
+// };
 
 
 // @desc Get single consultant
