@@ -67,10 +67,9 @@ export const createAppointment = async (req, res) => {
       return res.status(409).json({ message: 'Selected timeslot is already booked' });
     }
 
-    // All clear — create appointment
     const appt = await Appointment.create({
       user: req.user._id,
-      consultant: new mongoose.Types.ObjectId(consultantId),
+      consultant: consultantId, 
       startAt: start,
       endAt: end,
       title,
