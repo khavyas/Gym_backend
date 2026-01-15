@@ -3,17 +3,26 @@ import Appointment from '../models/Appointment.model';
 import Consultant from '../models/Consultant.model';
 import mongoose from 'mongoose';
 
-// helper authorization: owner (user), consultant, or admin/superadmin
-const canModify = (reqUser, appointment) => {
+// ✅ FIXED: Updated authorization helper
+const canModify = async (reqUser, appointment) => {
   if (!reqUser) return false;
   const uid = String(reqUser._id);
+  
+  // Admins can always modify
   if (['admin', 'superadmin'].includes(reqUser.role)) return true;
+  
+  // User who created the appointment can modify
   if (String(appointment.user) === uid) return true;
-  if (String(appointment.consultant) === uid) return true;
+  
+  // ✅ FIX: Check if the logged-in user is the consultant for this appointment
+  // Need to find the consultant document and check its user field
+  const consultant = await Consultant.findById(appointment.consultant);
+  if (consultant && String(consultant.user) === uid) return true;
+  
   return false;
 };
 
-// controllers/appointmentController.js (replace createAppointment)
+// Create appointment (unchanged)
 export const createAppointment = async (req, res) => {
   try {
     const { consultant: consultantId, startAt, endAt, title, notes, mode, location, price } = req.body;
@@ -22,19 +31,16 @@ export const createAppointment = async (req, res) => {
       return res.status(400).json({ message: 'consultant and startAt are required' });
     }
 
-    // validate consultant exists
     const consultant = await Consultant.findById(consultantId);
     if (!consultant) return res.status(404).json({ message: 'Consultant not found' });
 
-    // normalize start/end as Date objects
     const start = new Date(startAt);
     if (isNaN(start.getTime())) return res.status(400).json({ message: 'Invalid startAt' });
 
-    const end = endAt ? new Date(endAt) : new Date(start.getTime() + 30 * 60 * 1000); // default 30 min
+    const end = endAt ? new Date(endAt) : new Date(start.getTime() + 30 * 60 * 1000);
     if (isNaN(end.getTime())) return res.status(400).json({ message: 'Invalid endAt' });
     if (end <= start) return res.status(400).json({ message: 'endAt must be after startAt' });
 
-    // 1) Exact duplicate: same user + same consultant + same start time
     const exactDuplicate = await Appointment.findOne({
       user: req.user._id,
       consultant: consultantId,
@@ -44,23 +50,17 @@ export const createAppointment = async (req, res) => {
       return res.status(409).json({ message: 'You already have a booking for this timeslot' });
     }
 
-    // 2) Overlap check for consultant:
-    // find any appointment for the consultant that overlaps the requested window
-    // consider statuses that block the slot
     const blockingStatuses = ['pending', 'confirmed', 'rescheduled'];
     const overlap = await Appointment.findOne({
       consultant: consultantId,
       status: { $in: blockingStatuses },
       $or: [
-        // existing.start < new.end && existing.end > new.start  (overlap)
         { startAt: { $lt: end }, endAt: { $gt: start } },
-        // existing.start inside new range
         { startAt: { $gte: start, $lt: end } }
       ],
     });
 
     if (overlap) {
-      // If overlap exists and is by the same user, give a specific message
       if (String(overlap.user) === String(req.user._id)) {
         return res.status(409).json({ message: 'You already have an overlapping appointment at this time' });
       }
@@ -92,9 +92,7 @@ export const createAppointment = async (req, res) => {
   }
 };
 
-
-// Get appointments (filters: userId, consultantId, status, from, to)
-// Get appointments (filters: userId, consultantId, status, from, to)
+// Get appointments (unchanged)
 export const getAppointments = async (req, res) => {
   try {
     const { userId, consultantId, status, from, to } = req.query;
@@ -109,30 +107,17 @@ export const getAppointments = async (req, res) => {
       if (to) filter['startAt'].$lte = new Date(to);
     }
 
-    // ✅ FIX: For non-admins, combine consultantId filter with authorization
     if (!['admin', 'superadmin'].includes(req.user.role)) {
-      // If consultantId is provided in query, verify user has access to it
       if (consultantId) {
-        // Check if the consultantId belongs to this user
         const consultant = await Consultant.findById(consultantId);
         if (!consultant) {
           return res.status(404).json({ message: 'Consultant not found' });
         }
         
-        // Verify the consultant belongs to the logged-in user
         if (String(consultant.user) !== String(req.user._id)) {
           return res.status(403).json({ message: 'Access denied to this consultant' });
         }
-        // If authorized, keep the consultantId filter as-is
       } else {
-        // If no consultantId provided, show all appointments user is involved in
-        filter['$or'] = [
-          { user: req.user._id }, 
-          // Find consultant documents where user = req.user._id
-          // This requires a separate lookup
-        ];
-        
-        // Better approach: find consultant IDs for this user first
         const userConsultants = await Consultant.find({ user: req.user._id });
         const consultantIds = userConsultants.map(c => c._id);
         
@@ -164,7 +149,8 @@ export const getAppointmentById = async (req, res) => {
 
     if (!appt) return res.status(404).json({ message: 'Appointment not found' });
 
-    if (!canModify(req.user, appt)) return res.status(403).json({ message: 'Forbidden' });
+    const canEdit = await canModify(req.user, appt);
+    if (!canEdit) return res.status(403).json({ message: 'Forbidden' });
 
     res.json(appt);
   } catch (err) {
@@ -172,26 +158,46 @@ export const getAppointmentById = async (req, res) => {
   }
 };
 
-// Update appointment (partial)
+// ✅ IMPROVED: Update appointment with better status validation
 export const updateAppointment = async (req, res) => {
   try {
     const appt = await Appointment.findById(req.params.id);
     if (!appt) return res.status(404).json({ message: 'Appointment not found' });
 
-    if (!canModify(req.user, appt)) return res.status(403).json({ message: 'Forbidden' });
+    const canEdit = await canModify(req.user, appt);
+    if (!canEdit) return res.status(403).json({ message: 'Forbidden' });
 
-    // Prevent non-admins from changing user/consultant
     const updates = { ...req.body };
+    
+    // Prevent non-admins from changing user/consultant
     if (!['admin', 'superadmin'].includes(req.user.role)) {
       delete updates.user;
       delete updates.consultant;
     }
 
+    // ✅ NEW: Validate status transitions
     if (updates.status) {
+      const validTransitions = {
+        pending: ['confirmed', 'cancelled'],
+        confirmed: ['rescheduled', 'completed', 'cancelled'],
+        rescheduled: ['confirmed', 'cancelled'],
+        completed: [], // Cannot change from completed
+        cancelled: [], // Cannot change from cancelled
+      };
+
+      const allowedStatuses = validTransitions[appt.status] || [];
+      
+      if (!allowedStatuses.includes(updates.status) && !['admin', 'superadmin'].includes(req.user.role)) {
+        return res.status(400).json({ 
+          message: `Cannot change status from ${appt.status} to ${updates.status}` 
+        });
+      }
+
       appt.status = updates.status;
       appt.lastModifiedBy = req.user._id;
     }
 
+    // Update other fields
     const updatable = ['title', 'notes', 'startAt', 'endAt', 'mode', 'location', 'price', 'metadata'];
     updatable.forEach((f) => {
       if (updates[f] !== undefined) appt[f] = updates[f];
@@ -207,6 +213,7 @@ export const updateAppointment = async (req, res) => {
 
     res.json(populated);
   } catch (err) {
+    console.error('updateAppointment error:', err);
     res.status(500).json({ message: err.message });
   }
 };
@@ -217,7 +224,16 @@ export const cancelAppointment = async (req, res) => {
     const appt = await Appointment.findById(req.params.id);
     if (!appt) return res.status(404).json({ message: 'Appointment not found' });
 
-    if (!canModify(req.user, appt)) return res.status(403).json({ message: 'Forbidden' });
+    const canEdit = await canModify(req.user, appt);
+    if (!canEdit) return res.status(403).json({ message: 'Forbidden' });
+
+    // ✅ NEW: Check if already completed or cancelled
+    if (appt.status === 'completed') {
+      return res.status(400).json({ message: 'Cannot cancel a completed appointment' });
+    }
+    if (appt.status === 'cancelled') {
+      return res.status(400).json({ message: 'Appointment is already cancelled' });
+    }
 
     appt.status = 'cancelled';
     appt.lastModifiedBy = req.user._id;
@@ -233,7 +249,7 @@ export const cancelAppointment = async (req, res) => {
   }
 };
 
-// Delete appointment (hard delete) - allowed to admin or booking user
+// Delete appointment
 export const deleteAppointment = async (req, res) => {
   try {
     const appt = await Appointment.findById(req.params.id);
