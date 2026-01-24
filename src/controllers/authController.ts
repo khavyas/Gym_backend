@@ -20,7 +20,7 @@ export const registerUser = async (req: AuthRequest<RegisterUserDto>, res) => {
 
   const {
     name, age, phone, email, password, role,
-    consent, privacyNoticeAccepted, aadharNumber, abhaId,
+    consent, privacyNoticeAccepted, aadharNumber, abhaId, weight,
     // Extract consultant-specific fields
     gym, specialty, description, gender, yearsOfExperience,
     certifications, modeOfTraining, location, website,
@@ -47,6 +47,8 @@ export const registerUser = async (req: AuthRequest<RegisterUserDto>, res) => {
     const user = await User.create({
       name,
       age,
+      gender,
+      weight,
       phone: phone,
       email: email,
       password: hashedPassword,
@@ -159,6 +161,9 @@ export const registerUser = async (req: AuthRequest<RegisterUserDto>, res) => {
           name: user.name,
           email: user.email,
           role: user.role,
+          age: user.age,       
+          weight: user.weight,             
+          gender: user.gender, 
           token: generateToken(user._id),
           consultantId: consultantProfile._id,
           gymId: gym || null
@@ -174,6 +179,9 @@ export const registerUser = async (req: AuthRequest<RegisterUserDto>, res) => {
           name: user.name,
           email: user.email,
           role: user.role,
+          age: user.age,                          
+          weight: user.weight,                        
+          gender: user.gender, 
           token: generateToken(user._id),
           warning: 'User created but consultant profile needs to be completed',
           error: consultantError.message
@@ -187,6 +195,9 @@ export const registerUser = async (req: AuthRequest<RegisterUserDto>, res) => {
       name: user.name,
       email: user.email,
       role: user.role,
+      age: user.age,       
+      weight: user.weight,     
+      gender: user.gender,  
       token: generateToken(user._id),
     });
   } catch (error) {
@@ -266,6 +277,7 @@ export const registerAdmin = async (req: AuthRequest<RegisterAdminDto>, res) => 
       name: admin.name,
       email: admin.email,
       role: admin.role,
+      age: admin.age,  
       token: generateToken(admin._id),
     });
   } catch (error) {
@@ -332,6 +344,9 @@ export const verifyOtpAndRegister = async (req, res) => {
       success: true,
       message: "Registration successful",
       userId: user._id,
+      age: user.age,            
+      weight: user.weight,         
+      gender: user.gender,
       token: generateToken(user._id)
     });
 
@@ -427,6 +442,9 @@ export const loginUser = async (req: AuthRequest<LoginUserDto>, res) => {
       email: user.email,
       phone: user.phone,
       role: user.role,
+      age: user.age,           
+      weight: user.weight,     
+      gender: user.gender,     
       token: generateToken(user._id),
     });
 

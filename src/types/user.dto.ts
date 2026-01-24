@@ -9,6 +9,7 @@ import { z } from 'zod';
 export const registerUserDto = z.object({
     name: z.string().min(1, 'Name is required').max(100, 'Name is too long'),
     age: z.number().int().min(1).max(150).optional(),
+    weight: z.number().positive('Weight must be a positive number').optional(), 
     phone: z.string().trim().optional(),
     email: z
         .email('Invalid email format')
@@ -75,6 +76,7 @@ export const verifyOtpAndRegisterDto = z.object({
     otp: z.string().length(6, 'OTP must be exactly 6 digits').regex(/^\d{6}$/, 'OTP must contain only digits'),
     name: z.string().min(1, 'Name is required').max(100, 'Name is too long'),
     age: z.number().int().min(1).max(150).optional(),
+    weight: z.number().positive('Weight must be a positive number').optional(), 
     role: z.enum(['user', 'consultant']).default('user').optional(),
     aadharNumber: z.string().optional(),
     abhaId: z.string().optional(),
@@ -153,6 +155,8 @@ export const loginUserDto = z.object({
 export const updateUserDto = z.object({
     name: z.string().min(1, 'Name cannot be empty').max(100, 'Name is too long').optional(),
     age: z.number().int().min(1).max(150).optional(),
+    gender: z.enum(['male', 'female', 'other']).optional(), 
+    weight: z.number().positive('Weight must be a positive number').optional(), 
     phone: z.string().optional(),
     email: z
         .email('Invalid email format')
