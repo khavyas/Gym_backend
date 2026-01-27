@@ -9,7 +9,8 @@ import { z } from 'zod';
 export const registerUserDto = z.object({
     name: z.string().min(1, 'Name is required').max(100, 'Name is too long'),
     age: z.number().int().min(1).max(150).optional(),
-    weight: z.number().positive('Weight must be a positive number').optional(), 
+    gender: z.enum(['male', 'female', 'other']).optional(),
+    weight: z.number().positive('Weight must be a positive number').optional(), // ADD THIS LINE ✅
     phone: z.string().trim().optional(),
     email: z
         .email('Invalid email format')
@@ -20,7 +21,7 @@ export const registerUserDto = z.object({
         .string()
         .min(6, 'Password must be at least 6 characters')
         .max(100, 'Password is too long')
-        .optional(), // Optional because OAuth users may not have password
+        .optional(),
     role: z
         .enum(['user', 'consultant', 'admin'])
         .default('user')
@@ -39,17 +40,16 @@ export const registerUserDto = z.object({
     abhaId: z.string().optional(),
     oauthProvider: z.string().optional(),
     
-    // Consultant-specific fields - ALL OPTIONAL, filled later in profile
-    gym: z.string().optional(), // MongoDB ObjectId as string
-    specialty: z.string().optional(), // e.g., 'Nutritionist', 'Yoga Trainer'
+    // Consultant-specific fields - ALL OPTIONAL
+    gym: z.string().optional(),
+    specialty: z.string().optional(),
     description: z.string().optional(),
-    gender: z.enum(['male', 'female', 'other']).optional(),
     yearsOfExperience: z.number().int().min(0).max(50).optional(),
     certifications: z.array(z.string()).optional(),
     modeOfTraining: z.enum(['online', 'offline', 'hybrid']).optional(),
-    location: z.string().optional(), // e.g., 'Mumbai, India'
+    location: z.string().optional(),
     website: z.string().url('Invalid website URL').optional(),
-}).strict() // Disallow unknown fields
+}).strict() 
     .refine(
         (data) => data.email || data.phone,
         {
