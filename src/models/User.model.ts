@@ -1,9 +1,68 @@
-import mongoose, { Schema, Types, InferSchemaType } from 'mongoose';
-import encrypt from 'mongoose-encryption';
+import mongoose, { Schema, Types, InferSchemaType, Document } from 'mongoose';
+
+// Menstrual Cycle Sub-Schema
+const menstrualCycleSchema = new Schema({
+  isTracking: { type: Boolean, default: false },
+  
+  // Basic cycle information
+  averageCycleLength: { type: Number, default: 28 },
+  averagePeriodLength: { type: Number, default: 5 },
+  
+  // Last period information
+  lastPeriodStartDate: { type: Date },
+  lastPeriodEndDate: { type: Date },
+  
+  // Cycle history (last 12 cycles)
+  cycleHistory: [{
+    periodStartDate: { type: Date, required: true },
+    periodEndDate: { type: Date },
+    cycleLength: { type: Number },
+    periodLength: { type: Number },
+    symptoms: [{
+      type: { 
+        type: String, 
+        enum: [
+          'cramps', 'headache', 'bloating', 'mood_swings', 
+          'fatigue', 'breast_tenderness', 'acne', 'back_pain',
+          'nausea', 'food_cravings', 'insomnia', 'anxiety'
+        ] 
+      },
+      severity: { type: String, enum: ['mild', 'moderate', 'severe'] },
+      date: { type: Date }
+    }],
+    flowIntensity: [{
+      date: { type: Date },
+      intensity: { type: String, enum: ['light', 'medium', 'heavy'] }
+    }],
+    notes: { type: String }
+  }],
+  
+  // Predictions
+  nextPeriodDate: { type: Date },
+  fertileWindowStart: { type: Date },
+  fertileWindowEnd: { type: Date },
+  ovulationDate: { type: Date },
+  
+  // Settings
+  notifications: {
+    periodReminder: { type: Boolean, default: true },
+    fertileWindowReminder: { type: Boolean, default: false },
+    daysBeforeReminder: { type: Number, default: 2 }
+  },
+  
+  // Analytics
+  cycleRegularity: { 
+    type: String, 
+    enum: ['regular', 'irregular', 'unknown'],
+    default: 'unknown'
+  },
+  
+  lastUpdated: { type: Date, default: Date.now }
+}, { _id: false });
 
 const userSchema = new mongoose.Schema(
   {
-     _id: { type: Schema.Types.ObjectId, default: () => new Types.ObjectId() },
+    _id: { type: Schema.Types.ObjectId, default: () => new Types.ObjectId() },
     name: { type: String },
     age: { type: Number },
     gender: { type: String, enum: ["male", "female", "other"], required: false },
@@ -45,6 +104,13 @@ const userSchema = new mongoose.Schema(
       state: { type: String },
       pincode: { type: String }
     },
+    
+    // Menstrual Cycle Tracking (only for female users)
+    menstrualCycle: {
+      type: menstrualCycleSchema,
+      default: null
+    },
+    
     consent: { type: Boolean, required: true },
     privacyNoticeAccepted: { type: Boolean, required: true },
     emailVerified: { type: Boolean, default: false },
@@ -65,21 +131,6 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// // ✅ ONLY apply encryption if keys are provided
-// const encKey = process.env.MONGO_ENCRYPT_KEY;
-// const sigKey = process.env.MONGO_SIGN_KEY;
-
-// if (encKey && sigKey) {
-//   console.log('✅ Encryption enabled for sensitive fields');
-//   userSchema.plugin(encrypt, {
-//     encryptionKey: encKey,
-//     signingKey: sigKey,
-//     encryptedFields: ['aadharNumber', 'abhaId']
-//   });
-// } else {
-//   console.warn('⚠️  WARNING: Encryption keys not found. Sensitive data will NOT be encrypted!');
-// }
-
 // Validator: Check that at least one exists (email or phone)
 userSchema.pre('validate', function (next) {
   if (!this.email && !this.phone) {
@@ -91,4 +142,9 @@ userSchema.pre('validate', function (next) {
 
 export type UserType = InferSchemaType<typeof userSchema>;
 
-export default mongoose.model<UserType>('User', userSchema);
+// Export with proper typing
+interface UserDocument extends Document, UserType {
+  _id: Types.ObjectId;
+}
+
+export default mongoose.model<UserDocument>('User', userSchema);
