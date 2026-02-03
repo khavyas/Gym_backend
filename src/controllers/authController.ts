@@ -1,7 +1,7 @@
 import { AuthRequest } from "../types/request-response.dto";
 import { RegisterAdminDto, LoginUserDto, RegisterUserDto, GetUsersQueryDto } from "../types/user.dto";
 import User from '../models/User.model';
-import Profile from '../models/Profile.model'; // ADD THIS IMPORT
+import Profile from '../models/Profile.model';
 import bcrypt from 'bcrypt';
 import generateToken from '../utils/generateToken';
 import Otp from '../models/Otp.model';
@@ -9,8 +9,6 @@ import { Request } from "express";
 
 const MAX_OTP_ATTEMPTS = 5;
 const OTP_RESEND_COOLDOWN_MS = 60000;
-// const sendMail = require('../utils/sendMail'); // Uncomment when using email
-
 
 // ============================================
 // NEW USER REGISTRATION (with automatic Profile creation)
@@ -21,14 +19,12 @@ export const registerUser = async (req: AuthRequest<RegisterUserDto>, res) => {
   const {
     name, age, phone, email, password, role,
     consent, privacyNoticeAccepted, aadharNumber, abhaId, weight,
-    // Extract consultant-specific fields
     gym, specialty, description, gender, yearsOfExperience,
     certifications, modeOfTraining, location, website,
     ...rest
   } = req.body;
 
   try {
-    // Build filter only for non-empty supplied fields
     let filters = [];
     if (email) filters.push({ email: email.toLowerCase().trim() });
     if (phone) filters.push({ phone: phone.trim() });
@@ -60,7 +56,7 @@ export const registerUser = async (req: AuthRequest<RegisterUserDto>, res) => {
       ...rest
     });
 
-    // ✅ AUTOMATICALLY CREATE PROFILE FOR THE USER
+    // ✅ AUTOMATICALLY CREATE PROFILE FOR THE USER WITH SYNCED DATA
     try {
       const newProfile = await Profile.create({
         userId: user._id,
@@ -73,10 +69,10 @@ export const registerUser = async (req: AuthRequest<RegisterUserDto>, res) => {
         aadharNumber: aadharNumber || "",
         abhaId: abhaId || "",
         healthMetrics: {
-          weight: "",
+          weight: weight?.toString() || "", // ✅ FIX: Sync weight from registration
           height: "",
           age: age?.toString() || "",
-          gender: gender || "male",
+          gender: gender || "male", // ✅ Already syncing gender
           fitnessGoal: "general_fitness"
         },
         workPreferences: {
@@ -110,6 +106,7 @@ export const registerUser = async (req: AuthRequest<RegisterUserDto>, res) => {
       });
 
       console.log("✅ Profile created automatically for user:", user._id);
+      console.log("✅ Synced data - Gender:", gender, "Weight:", weight, "Age:", age);
     } catch (profileError) {
       console.error("⚠️ Failed to create profile, but user was created:", profileError);
     }
@@ -117,7 +114,6 @@ export const registerUser = async (req: AuthRequest<RegisterUserDto>, res) => {
     // ✅ IF ROLE IS CONSULTANT, CREATE CONSULTANT PROFILE TOO
     if (role === 'consultant') {
       try {
-        // Validate gym ID if provided
         if (gym) {
           const GymCenter = require('../models/Gym.model').default;
           const gymExists = await GymCenter.findById(gym);
@@ -128,12 +124,11 @@ export const registerUser = async (req: AuthRequest<RegisterUserDto>, res) => {
 
         const Consultant = require('../models/Consultant.model').default;
         
-        // Build consultant profile with proper defaults
         const consultantData = {
           user: user._id,
           gym: gym || '6782ba6ab378969cb55dde21',
           name: name,
-          specialty: specialty || 'General Consultant', // Use extracted specialty
+          specialty: specialty || 'General Consultant',
           description: description || '',
           gender: gender || undefined,
           yearsOfExperience: yearsOfExperience || 0,
@@ -155,7 +150,6 @@ export const registerUser = async (req: AuthRequest<RegisterUserDto>, res) => {
 
         console.log("✅ Consultant profile created automatically:", consultantProfile._id);
         
-        // Return consultant info in response
         return res.status(201).json({
           userId: user._id,
           name: user.name,
@@ -173,7 +167,6 @@ export const registerUser = async (req: AuthRequest<RegisterUserDto>, res) => {
         console.error("⚠️ Failed to create consultant profile:", consultantError.message);
         console.error("Full error:", consultantError);
         
-        // Return response with warning
         return res.status(201).json({
           userId: user._id,
           name: user.name,
@@ -210,16 +203,14 @@ export const registerUser = async (req: AuthRequest<RegisterUserDto>, res) => {
 export const registerAdmin = async (req: AuthRequest<RegisterAdminDto>, res) => {
   console.log("Incoming admin registration body:", req.body);
 
-  const { name, age, phone, email, password } = req.body;
+  const { name, age, phone, email, password, gender } = req.body;
 
   try {
-    // Check if admin already exists with this email
     const adminExists = await User.findOne({ email: email.toLowerCase().trim() });
     if (adminExists) {
       return res.status(400).json({ message: 'Admin with this email already exists' });
     }
 
-    // Check if phone is provided and already exists
     if (phone) {
       const phoneExists = await User.findOne({ phone: phone.trim() });
       if (phoneExists) {
@@ -227,14 +218,13 @@ export const registerAdmin = async (req: AuthRequest<RegisterAdminDto>, res) => 
       }
     }
 
-    // Hash the password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Create admin user with admin role
     const admin = await User.create({
       name,
       age,
+      gender: gender || "male",
       phone: phone,
       email: email.toLowerCase().trim(),
       password: hashedPassword,
@@ -258,7 +248,7 @@ export const registerAdmin = async (req: AuthRequest<RegisterAdminDto>, res) => 
           weight: "",
           height: "",
           age: age?.toString() || "",
-          gender: "male",
+          gender: gender || "male",
           fitnessGoal: "general_fitness"
         },
         membershipStatus: "active",
@@ -277,7 +267,8 @@ export const registerAdmin = async (req: AuthRequest<RegisterAdminDto>, res) => 
       name: admin.name,
       email: admin.email,
       role: admin.role,
-      age: admin.age,  
+      age: admin.age,
+      gender: admin.gender,
       token: generateToken(admin._id),
     });
   } catch (error) {
@@ -289,10 +280,9 @@ export const registerAdmin = async (req: AuthRequest<RegisterAdminDto>, res) => 
 // VERIFY OTP AND CREATE USER (Step 2)
 // ============================================
 export const verifyOtpAndRegister = async (req, res) => {
-  const { phone, email, otp, name, age, role, aadharNumber, abhaId, password } = req.body;
+  const { phone, email, otp, name, age, role, aadharNumber, abhaId, password, gender, weight } = req.body;
 
   try {
-    // Find OTP record in database
     const otpRecord = await Otp.findOne({
       $or: [{ email }, { phone }],
       otp
@@ -305,7 +295,6 @@ export const verifyOtpAndRegister = async (req, res) => {
       });
     }
 
-    // Check if user already exists (safety check)
     let filters = [];
     if (email) filters.push({ email });
     if (phone) filters.push({ phone });
@@ -314,30 +303,58 @@ export const verifyOtpAndRegister = async (req, res) => {
       return res.status(400).json({ message: 'User already registered' });
     }
 
-    // Build user data
     let userData: any = {
       name,
       age,
+      gender,
+      weight,
       phone,
       email,
       role: role || 'user',
-      consent: true, // Already validated during /register
+      consent: true,
       privacyNoticeAccepted: true,
       aadharNumber,
       abhaId,
-      isVerified: true // Mark as verified since OTP is confirmed
+      isVerified: true
     };
 
-    // If password provided, hash it
     if (password) {
       const salt = await bcrypt.genSalt(10);
       userData.password = await bcrypt.hash(password, salt);
     }
 
-    // NOW create the user (after OTP verification)
     const user = await User.create(userData);
 
-    // Delete OTP record after successful verification
+    // ✅ CREATE PROFILE AFTER OTP VERIFICATION
+    try {
+      await Profile.create({
+        userId: user._id,
+        fullName: name,
+        email: email,
+        phone: phone || "",
+        bio: "",
+        profileImage: null,
+        dateOfBirth: "",
+        aadharNumber: aadharNumber || "",
+        abhaId: abhaId || "",
+        healthMetrics: {
+          weight: weight?.toString() || "",
+          height: "",
+          age: age?.toString() || "",
+          gender: gender || "male",
+          fitnessGoal: "general_fitness"
+        },
+        membershipStatus: "trial",
+        badgeCount: 0,
+        achievements: [],
+        logincount: 0
+      });
+
+      console.log("✅ Profile created after OTP verification for user:", user._id);
+    } catch (profileError) {
+      console.error("⚠️ Failed to create profile after OTP verification:", profileError);
+    }
+
     await Otp.deleteOne({ _id: otpRecord._id });
 
     return res.status(201).json({
@@ -379,7 +396,7 @@ export const getUserProfile = async (req, res) => {
       aadharNumber: maskAadhaar(user.aadharNumber),
       abhaId: maskAbha(user.abhaId),
       phone: user.phone ? "XXXXXX" + user.phone.slice(-4) : undefined,
-      password: undefined // never expose!
+      password: undefined
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -393,18 +410,13 @@ export const loginUser = async (req: AuthRequest<LoginUserDto>, res) => {
   const { email, phone, password, identifier } = req.body;
 
   try {
-    // All validation is now handled by Zod schema in loginUserDto
-    // The middleware ensures: at least one of email/phone/identifier is provided, and password is required
-
-    // Decide what the user entered: email or phone
     const query: any = {};
 
     if (email) {
-      query.email = email; // Already trimmed and lowercased by Zod
+      query.email = email;
     } else if (phone) {
-      query.phone = phone; // Already trimmed by Zod
+      query.phone = phone;
     } else if (identifier) {
-      // Identifier is already trimmed by Zod
       if (/^\d+$/.test(identifier)) {
         query.phone = identifier;
       } else {
@@ -412,7 +424,6 @@ export const loginUser = async (req: AuthRequest<LoginUserDto>, res) => {
       }
     }
 
-    // Find user by either field
     const user = await User.findOne(query);
 
     if (!user) {
@@ -420,7 +431,6 @@ export const loginUser = async (req: AuthRequest<LoginUserDto>, res) => {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    // Check if password exists
     if (!user.password) {
       console.log("❌ User has no password set");
       return res.status(401).json({ message: "Invalid credentials" });
@@ -454,7 +464,6 @@ export const loginUser = async (req: AuthRequest<LoginUserDto>, res) => {
   }
 };
 
-
 export const changePassword = async (req, res) => {
   try {
     const { userId, newPassword } = req.body;
@@ -462,14 +471,12 @@ export const changePassword = async (req, res) => {
       return res.status(400).json({ message: "User ID and new password are required" });
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-    // ✅ Update without triggering schema validations for consent/privacy
     await User.findByIdAndUpdate(
       userId,
       { password: hashedPassword },
-      { runValidators: false } // ← THIS is the key fix
+      { runValidators: false }
     );
 
     res.status(200).json({ message: "Password changed successfully" });
@@ -479,7 +486,6 @@ export const changePassword = async (req, res) => {
   }
 };
 
-// SEND OTP endpoint
 export const sendOtp = async (req, res) => {
   const { email, phone } = req.body;
   try {
@@ -503,15 +509,12 @@ export const sendOtp = async (req, res) => {
 
     await Otp.create({ otp, userid: user._id, email: user.email, phone: user.phone });
 
-    // await sendMail(user.email, `Your OTP is ${otp}`); // Uncomment after setup
-    res.json({ success: true, message: "OTP sent", otp }); // Expose OTP for dev/testing only
+    res.json({ success: true, message: "OTP sent", otp });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-
-// CONFIRM OTP endpoint
 export const confirmOtp = async (req, res) => {
   const { email, otp } = req.body;
   const user = await User.findOne({ email });
@@ -522,10 +525,8 @@ export const confirmOtp = async (req, res) => {
   res.json({ success: isValid, message: isValid ? "OTP verified" : "OTP invalid" });
 };
 
-// GET CURRENT USER (ME)
 export const getMe = async (req: AuthRequest, res) => {
   try {
-    // Return user data without sensitive information
     res.status(200).json({
       success: true,
       user: req.user
@@ -539,24 +540,18 @@ export const getMe = async (req: AuthRequest, res) => {
   }
 };
 
-// VERIFY EMAIL endpoint
 export const verifyEmail = async (req, res) => {
   const { email } = req.body;
   const user = await User.findOne({ email });
   if (user) {
-    // await sendMail(email, "Verification link or OTP here");
     res.json({ success: true, message: "Email registered" });
   } else {
     res.json({ success: false, message: "Email not registered" });
   }
 };
 
-// ============================================
-// GET ALL USERS (with filtering and pagination)
-// ============================================
 export const getAllUsers = async (req: AuthRequest, res) => {
   try {
-    // Type cast validated query params
     const query = req.query as unknown as GetUsersQueryDto;
 
     const {
@@ -575,11 +570,10 @@ export const getAllUsers = async (req: AuthRequest, res) => {
       sortOrder
     } = query;
 
-    // Build filter object
     const filter: any = {};
 
     if (id) filter._id = id;
-    if (name) filter.name = { $regex: name, $options: 'i' }; // Case-insensitive search
+    if (name) filter.name = { $regex: name, $options: 'i' };
     if (email) filter.email = email;
     if (phone) filter.phone = phone;
     if (role) filter.role = role;
@@ -588,22 +582,18 @@ export const getAllUsers = async (req: AuthRequest, res) => {
     if (phoneVerified !== undefined) filter.phoneVerified = phoneVerified;
     if (oauthProvider) filter.oauthProvider = oauthProvider;
 
-    // Calculate pagination
     const skip = (page - 1) * limit;
 
-    // Build sort object
     const sort: any = {};
     sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
 
-    // Execute query with pagination
     const users = await User.find(filter)
-      .select('-password -otp -otpAttempts') // Exclude sensitive fields
+      .select('-password -otp -otpAttempts')
       .sort(sort)
       .skip(skip)
       .limit(limit)
       .lean();
 
-    // Get total count for pagination metadata
     const total = await User.countDocuments(filter);
 
     res.status(200).json({

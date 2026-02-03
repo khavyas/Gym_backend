@@ -12,13 +12,11 @@ export const createProfile = async (req: AuthRequest<CreateProfileDTO>, res: Res
   try {
     const { email, ...profileData } = req.body;
 
-    // Create profile for user making the request or for specified email
     const user = req.user.role === 'user' ? req.user : await User.findOne({ email, role: 'user' });
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Check if profile already exists for this user
     const existingProfile = await Profile.findOne({ userId: user._id });
     if (existingProfile) {
       return res.status(400).json({
@@ -27,7 +25,6 @@ export const createProfile = async (req: AuthRequest<CreateProfileDTO>, res: Res
       });
     }
 
-    // Create new profile
     const profile = new Profile({
       userId: user._id,
       ...profileData
@@ -106,14 +103,12 @@ export const updateProfile = async (req: Request, res: Response) => {
       }
     }
 
-    // Find existing profile - Mongoose will automatically cast the string to ObjectId
+    // Find existing profile
     let profile = await Profile.findOne({ userId: userId });
 
     if (!profile) {
       console.log("⚠️ Profile not found, creating new one for userId:", userId);
       
-      // If profile doesn't exist, create it
-      // Get user details for initial profile creation
       const user = await User.findById(userId);
       if (!user) {
         return res.status(404).json({
@@ -130,12 +125,11 @@ export const updateProfile = async (req: Request, res: Response) => {
         ...req.body
       });
     } else {
-      // Update existing profile
       console.log("✅ Profile found, updating...");
       
       // Update all fields from request body
       Object.keys(req.body).forEach(key => {
-        if (key !== 'fullName' && key !== 'email') { // Don't allow updating immutable fields
+        if (key !== 'fullName' && key !== 'email') {
           profile[key] = req.body[key];
         }
       });
@@ -144,6 +138,48 @@ export const updateProfile = async (req: Request, res: Response) => {
     await profile.save();
     
     console.log("✅ Profile saved successfully");
+
+    // ✅ SYNC CRITICAL FIELDS BACK TO USER TABLE
+    try {
+      const updateData: any = {};
+      
+      // Sync gender from healthMetrics to User table
+      if (req.body.healthMetrics?.gender) {
+        updateData.gender = req.body.healthMetrics.gender;
+        console.log("🔄 Syncing gender to User table:", updateData.gender);
+      }
+
+      // Sync weight from healthMetrics to User table (convert string to number)
+      if (req.body.healthMetrics?.weight) {
+        const weightNum = parseFloat(req.body.healthMetrics.weight);
+        if (!isNaN(weightNum)) {
+          updateData.weight = weightNum;
+          console.log("🔄 Syncing weight to User table:", updateData.weight);
+        }
+      }
+
+      // Sync age from healthMetrics to User table (convert string to number)
+      if (req.body.healthMetrics?.age) {
+        const ageNum = parseInt(req.body.healthMetrics.age);
+        if (!isNaN(ageNum)) {
+          updateData.age = ageNum;
+          console.log("🔄 Syncing age to User table:", updateData.age);
+        }
+      }
+
+      // Update User table if there are fields to sync
+      if (Object.keys(updateData).length > 0) {
+        await User.findByIdAndUpdate(
+          userId,
+          { $set: updateData },
+          { runValidators: false } // Avoid consent/privacy validation issues
+        );
+        console.log("✅ User table synced successfully with:", updateData);
+      }
+    } catch (syncError) {
+      console.error("⚠️ Failed to sync to User table:", syncError);
+      // Don't fail the request - profile is already saved
+    }
     
     res.json({
       success: true,

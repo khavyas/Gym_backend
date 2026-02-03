@@ -114,7 +114,8 @@ export const registerAdminDto = z.object({
     password: z
         .string()
         .min(6, 'Password must be at least 6 characters')
-        .max(100, 'Password is too long')
+        .max(100, 'Password is too long'),
+    gender: z.enum(['male', 'female', 'other']).optional(),
 });
 
 /**
