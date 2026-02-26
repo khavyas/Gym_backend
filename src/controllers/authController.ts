@@ -1,6 +1,6 @@
 import { AuthRequest } from "../types/request-response.dto";
 import { RegisterAdminDto, LoginUserDto, RegisterUserDto, GetUsersQueryDto } from "../types/user.dto";
-import User from '../models/User.model';
+import User, { UserType } from '../models/User.model';
 import Profile from '../models/Profile.model';
 import bcrypt from 'bcrypt';
 import generateToken from '../utils/generateToken';
@@ -21,6 +21,7 @@ export const registerUser = async (req: AuthRequest<RegisterUserDto>, res) => {
     consent, privacyNoticeAccepted, aadharNumber, abhaId, weight,
     gym, specialty, description, gender, yearsOfExperience,
     certifications, modeOfTraining, location, website,
+    joiningDate, leavingDate, reasonOfLeaving, subscriptionType, isHiwoxMember, subscriptionRenewalDate,
     ...rest
   } = req.body;
 
@@ -102,7 +103,13 @@ export const registerUser = async (req: AuthRequest<RegisterUserDto>, res) => {
         membershipStatus: "trial",
         badgeCount: 0,
         achievements: [],
-        logincount: 0
+        logincount: 0,
+        joiningDate: joiningDate ? new Date(joiningDate) : undefined,
+        leavingDate: leavingDate ? new Date(leavingDate) : undefined,
+        reasonOfLeaving: reasonOfLeaving || undefined,
+        subscriptionType: subscriptionType || undefined,
+        isHiwoxMember: typeof isHiwoxMember === 'boolean' ? isHiwoxMember : false,
+        subscriptionRenewalDate: subscriptionRenewalDate ? new Date(subscriptionRenewalDate) : undefined
       });
 
       console.log("✅ Profile created automatically for user:", user._id);
@@ -123,7 +130,7 @@ export const registerUser = async (req: AuthRequest<RegisterUserDto>, res) => {
         }
 
         const Consultant = require('../models/Consultant.model').default;
-        
+
         const consultantData = {
           user: user._id,
           gym: gym || '6782ba6ab378969cb55dde21',
@@ -149,32 +156,32 @@ export const registerUser = async (req: AuthRequest<RegisterUserDto>, res) => {
         const consultantProfile = await Consultant.create(consultantData);
 
         console.log("✅ Consultant profile created automatically:", consultantProfile._id);
-        
+
         return res.status(201).json({
           userId: user._id,
           name: user.name,
           email: user.email,
           role: user.role,
-          age: user.age,       
-          weight: user.weight,             
-          gender: user.gender, 
+          age: user.age,
+          weight: user.weight,
+          gender: user.gender,
           token: generateToken(user._id),
           consultantId: consultantProfile._id,
           gymId: gym || null
         });
-        
+
       } catch (consultantError) {
         console.error("⚠️ Failed to create consultant profile:", consultantError.message);
         console.error("Full error:", consultantError);
-        
+
         return res.status(201).json({
           userId: user._id,
           name: user.name,
           email: user.email,
           role: user.role,
-          age: user.age,                          
-          weight: user.weight,                        
-          gender: user.gender, 
+          age: user.age,
+          weight: user.weight,
+          gender: user.gender,
           token: generateToken(user._id),
           warning: 'User created but consultant profile needs to be completed',
           error: consultantError.message
@@ -188,9 +195,9 @@ export const registerUser = async (req: AuthRequest<RegisterUserDto>, res) => {
       name: user.name,
       email: user.email,
       role: user.role,
-      age: user.age,       
-      weight: user.weight,     
-      gender: user.gender,  
+      age: user.age,
+      weight: user.weight,
+      gender: user.gender,
       token: generateToken(user._id),
     });
   } catch (error) {
@@ -220,7 +227,6 @@ export const registerAdmin = async (req: AuthRequest<RegisterAdminDto>, res) => 
 
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
-
     const admin = await User.create({
       name,
       age,
@@ -361,8 +367,8 @@ export const verifyOtpAndRegister = async (req, res) => {
       success: true,
       message: "Registration successful",
       userId: user._id,
-      age: user.age,            
-      weight: user.weight,         
+      age: user.age,
+      weight: user.weight,
       gender: user.gender,
       token: generateToken(user._id)
     });
@@ -452,9 +458,9 @@ export const loginUser = async (req: AuthRequest<LoginUserDto>, res) => {
       email: user.email,
       phone: user.phone,
       role: user.role,
-      age: user.age,           
-      weight: user.weight,     
-      gender: user.gender,     
+      age: user.age,
+      weight: user.weight,
+      gender: user.gender,
       token: generateToken(user._id),
     });
 
@@ -550,7 +556,7 @@ export const verifyEmail = async (req, res) => {
   }
 };
 
-export const getAllUsers = async (req: AuthRequest, res) => {
+export const getUsers = async (req: AuthRequest, res) => {
   try {
     const query = req.query as unknown as GetUsersQueryDto;
 
@@ -594,11 +600,22 @@ export const getAllUsers = async (req: AuthRequest, res) => {
       .limit(limit)
       .lean();
 
+    // Fetch profile details for each user
+    const usersWithProfiles = await Promise.all(
+      users.map(async (user) => {
+        const profile = await Profile.findOne({ userId: user._id }).lean();
+        return {
+          ...user,
+          profile: profile || null
+        };
+      })
+    );
+
     const total = await User.countDocuments(filter);
 
     res.status(200).json({
       success: true,
-      data: users,
+      data: usersWithProfiles,
       pagination: {
         total,
         page,

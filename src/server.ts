@@ -7,8 +7,8 @@ import consultantRoutes from "./routes/consultantRoutes";
 import profileRoutes from "./routes/profileRoutes";
 import cors from "cors";
 import gymRoutes from './routes/gymRoutes';
-import appointmentRoutes from './routes/appointmentRoutes';  
-import mealRoutes from './routes/mealRoutes';  
+import appointmentRoutes from './routes/appointmentRoutes';
+import mealRoutes from './routes/mealRoutes';
 import swaggerUI from 'swagger-ui-express';
 import swaggerSpec from './config/swagger';
 import authRoutes from './routes/authRoutes';
@@ -25,6 +25,10 @@ connectDB();
 
 const app = express();
 
+// Middleware
+app.use(express.json());
+app.use(cors());
+
 // Detailed logging middleware
 // log every request
 app.use((req, res, next) => {
@@ -36,10 +40,6 @@ app.use((req, res, next) => {
   console.log('========================\n');
   next();
 });
-
-// Middleware
-app.use(express.json());
-app.use(cors());
 
 // add 2secs latency
 app.use((req, res, next) => {
@@ -57,8 +57,8 @@ app.use("/api/consultants", consultantRoutes);
 app.use("/api/profile", profileRoutes);
 app.use('/api/gyms', gymRoutes);
 app.use('/api/metrics', metricsRoutes);
-app.use('/api/appointments', appointmentRoutes);  
-app.use('/api/meals', mealRoutes);  
+app.use('/api/appointments', appointmentRoutes);
+app.use('/api/meals', mealRoutes);
 app.use('/api/workouts', workoutRoutes);
 app.use('/api/wellness', wellnessRoutes);
 app.use('/api/menstrual-cycle', menstrualCycleRoutes);

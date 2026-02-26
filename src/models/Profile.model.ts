@@ -21,11 +21,11 @@ const profileSchema = new mongoose.Schema(
     bio: { type: String },
     profileImage: { type: String },
     dateOfBirth: { type: String },
-    aadharNumber: { 
+    aadharNumber: {
       type: String,
       default: '',
       validate: {
-        validator: function(v: string) {
+        validator: function (v: string) {
           // Only validate if value is provided and not empty
           if (!v || v.length === 0) return true;
           return v.length === 12 && /^[0-9]{12}$/.test(v);
@@ -33,11 +33,11 @@ const profileSchema = new mongoose.Schema(
         message: 'Aadhar number must be exactly 12 digits'
       }
     },
-    abhaId: { 
+    abhaId: {
       type: String,
       default: '',
       validate: {
-        validator: function(v: string) {
+        validator: function (v: string) {
           // Only validate if value is provided and not empty
           if (!v || v.length === 0) return true;
           // Add your ABHA ID validation logic here
@@ -80,11 +80,11 @@ const profileSchema = new mongoose.Schema(
       street: { type: String, default: '' },
       city: { type: String, default: '' },
       state: { type: String, default: '' },
-      pincode: { 
-        type: String, 
+      pincode: {
+        type: String,
         default: '',
         validate: {
-          validator: function(v: string) {
+          validator: function (v: string) {
             // Only validate if value is provided and not empty
             if (!v || v.length === 0) return true;
             return v.length === 6 && /^[0-9]{6}$/.test(v);
@@ -96,16 +96,44 @@ const profileSchema = new mongoose.Schema(
 
     lastlogin: { type: Date },
     logincount: { type: Number, default: 0 },
-    membershipStatus: { 
-      type: String, 
-      enum: ["active", "trial", "suspended"], 
-      default: "trial" 
+    membershipStatus: {
+      type: String,
+      enum: ["active", "trial", "suspended"],
+      default: "trial"
     },
+
     badgeCount: { type: Number, default: 0 },
     achievements: [String],
     referralCode: { type: String, unique: true, sparse: true },
+
+    joiningDate: { type: Date, required: true },
+    leavingDate: { type: Date },
+    reasonOfLeaving: {
+      type: String,
+      enum: [
+        'Relocation',
+        'Financial reasons',
+        'Lack of time',
+        'Health issues',
+        'Dissatisfaction with services',
+        'Joined another gym',
+        'Personal reasons',
+        'Other'
+      ],
+      default: 'Other'
+    },
+    subscriptionType: {
+      type: String,
+      enum: ["basic", "super", "premium"],
+      default: "basic"
+    },
+    isHiwoxMember: { type: Boolean, default: false },
+    subscriptionRenewalDate: { type: Date },
   },
   { timestamps: true }
 );
 
-export default mongoose.model("Profile", profileSchema);
+export type ProfileType = mongoose.InferSchemaType<typeof profileSchema>;
+
+
+export default mongoose.model<ProfileType>("Profile", profileSchema);

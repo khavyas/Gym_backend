@@ -1,5 +1,5 @@
 import express from "express";
-import { registerUser, loginUser, changePassword, registerAdmin, verifyOtpAndRegister, getMe, getAllUsers } from "../controllers/authController";
+import { registerUser, loginUser, changePassword, registerAdmin, verifyOtpAndRegister, getMe, getUsers } from "../controllers/authController";
 import sendEmail from '../utils/sendEmail';
 import { roleCheck, protect } from "../middleware/authMiddleware";
 import { registerUserDto, registerAdminDto, loginUserDto, getUsersQueryDto } from "../types/user.dto";
@@ -174,6 +174,35 @@ router.post(
  *                 type: string
  *                 description: OAuth provider name (if using OAuth login)
  *                 example: "google"
+ *               joiningDate:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Date the user joined (optional)
+ *                 example: "2024-01-01T00:00:00.000Z"
+ *               leavingDate:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Date the user left (optional)
+ *                 example: "2025-01-01T00:00:00.000Z"
+ *               reasonOfLeaving:
+ *                 type: string
+ *                 description: Reason for leaving the gym (optional)
+ *                 enum: [Relocation, Financial reasons, Lack of time, Health issues, Dissatisfaction with services, Joined another gym, Personal reasons, Other]
+ *                 example: "Relocation"
+ *               subscriptionType:
+ *                 type: string
+ *                 enum: [basic, premium, hiwox]
+ *                 description: User's subscription type (optional)
+ *                 example: "basic"
+ *               isHiwoxMember:
+ *                 type: boolean
+ *                 description: Whether the user is a Hiwox member (optional)
+ *                 example: false
+ *               subscriptionRenewalDate:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Subscription renewal date (optional)
+ *                 example: "2025-01-01T00:00:00.000Z"
  *     responses:
  *       201:
  *         description: User successfully registered
@@ -681,6 +710,6 @@ router.get('/me', protect, getMe);
  *       500:
  *         description: Server error
  */
-router.get('/users', protect, roleCheck(['admin', 'superadmin']), validateRequest(getUsersQueryDto, 'query'), getAllUsers);
+router.get('/users', protect, roleCheck(['admin', 'superadmin']), validateRequest(getUsersQueryDto, 'query'), getUsers);
 
 export default router;

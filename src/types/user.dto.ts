@@ -23,7 +23,7 @@ export const registerUserDto = z.object({
         .max(100, 'Password is too long')
         .optional(),
     role: z
-        .enum(['user', 'consultant', 'admin'])
+        .enum(['user', 'consultant'])
         .default('user')
         .optional(),
     consent: z
@@ -39,7 +39,7 @@ export const registerUserDto = z.object({
     aadharNumber: z.string().optional(),
     abhaId: z.string().optional(),
     oauthProvider: z.string().optional(),
-    
+
     // Consultant-specific fields - ALL OPTIONAL
     gym: z.string().optional(),
     specialty: z.string().optional(),
@@ -48,8 +48,23 @@ export const registerUserDto = z.object({
     certifications: z.array(z.string()).optional(),
     modeOfTraining: z.enum(['online', 'offline', 'hybrid']).optional(),
     location: z.string().optional(),
-    website: z.string().url('Invalid website URL').optional(),
-}).strict() 
+    website: z.url('Invalid website URL').optional(),
+    joiningDate: z.iso.datetime().optional(),
+    leavingDate: z.iso.datetime().optional(),
+    reasonOfLeaving: z.enum([
+        'Relocation',
+        'Financial reasons',
+        'Lack of time',
+        'Health issues',
+        'Dissatisfaction with services',
+        'Joined another gym',
+        'Personal reasons',
+        'Other'
+    ]).optional(),
+    subscriptionType: z.enum(['basic', 'premium', 'hiwox']).optional(),
+    isHiwoxMember: z.boolean().optional(),
+    subscriptionRenewalDate: z.iso.datetime().optional(),
+}).strict()
     .refine(
         (data) => data.email || data.phone,
         {
@@ -64,7 +79,7 @@ export const registerUserDto = z.object({
             path: ['password'],
         }
     );
-    // ❌ REMOVED specialty validation - it's optional during registration
+// ❌ REMOVED specialty validation - it's optional during registration
 
 /**
  * Verify OTP and Register DTO
@@ -76,12 +91,12 @@ export const verifyOtpAndRegisterDto = z.object({
     otp: z.string().length(6, 'OTP must be exactly 6 digits').regex(/^\d{6}$/, 'OTP must contain only digits'),
     name: z.string().min(1, 'Name is required').max(100, 'Name is too long'),
     age: z.number().int().min(1).max(150).optional(),
-    weight: z.number().positive('Weight must be a positive number').optional(), 
+    weight: z.number().positive('Weight must be a positive number').optional(),
     role: z.enum(['user', 'consultant']).default('user').optional(),
     aadharNumber: z.string().optional(),
     abhaId: z.string().optional(),
     password: z.string().min(6, 'Password must be at least 6 characters').max(100, 'Password is too long').optional(),
-    
+
     // Consultant-specific fields for OTP registration - ALL OPTIONAL
     gym: z.string().optional(),
     specialty: z.string().optional(),
@@ -100,7 +115,7 @@ export const verifyOtpAndRegisterDto = z.object({
             path: ['email'],
         }
     );
-    // ❌ REMOVED specialty validation here too
+// ❌ REMOVED specialty validation here too
 
 export const registerAdminDto = z.object({
     name: z.string().min(1, 'Name is required').max(100, 'Name is too long'),
@@ -156,8 +171,8 @@ export const loginUserDto = z.object({
 export const updateUserDto = z.object({
     name: z.string().min(1, 'Name cannot be empty').max(100, 'Name is too long').optional(),
     age: z.number().int().min(1).max(150).optional(),
-    gender: z.enum(['male', 'female', 'other']).optional(), 
-    weight: z.number().positive('Weight must be a positive number').optional(), 
+    gender: z.enum(['male', 'female', 'other']).optional(),
+    weight: z.number().positive('Weight must be a positive number').optional(),
     phone: z.string().optional(),
     email: z
         .email('Invalid email format')

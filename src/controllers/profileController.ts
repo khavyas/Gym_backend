@@ -50,26 +50,26 @@ export const createProfile = async (req: AuthRequest<CreateProfileDTO>, res: Res
 export const getProfile = async (req: Request, res: Response) => {
   try {
     console.log("📥 Fetching profile for userId:", req.params.userId);
-    
-    const profile = await Profile.findOne({ 
+
+    const profile = await Profile.findOne({
       userId: req.params.userId
     });
-    
+
     if (!profile) {
       console.log("❌ Profile not found for userId:", req.params.userId);
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
-        message: "Profile not found" 
+        message: "Profile not found"
       });
     }
-    
+
     console.log("✅ Profile found:", profile._id);
     res.json(profile);
   } catch (error: any) {
     console.error("❌ Error fetching profile:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      message: error.message 
+      message: error.message
     });
   }
 };
@@ -79,7 +79,7 @@ export const getProfile = async (req: Request, res: Response) => {
 export const updateProfile = async (req: Request, res: Response) => {
   try {
     const { userId } = req.params;
-    
+
     console.log("📝 Updating profile for userId:", userId);
     console.log("📦 Update payload:", JSON.stringify(req.body, null, 2));
 
@@ -108,7 +108,7 @@ export const updateProfile = async (req: Request, res: Response) => {
 
     if (!profile) {
       console.log("⚠️ Profile not found, creating new one for userId:", userId);
-      
+
       const user = await User.findById(userId);
       if (!user) {
         return res.status(404).json({
@@ -126,7 +126,7 @@ export const updateProfile = async (req: Request, res: Response) => {
       });
     } else {
       console.log("✅ Profile found, updating...");
-      
+
       // Update all fields from request body
       Object.keys(req.body).forEach(key => {
         if (key !== 'fullName' && key !== 'email') {
@@ -136,13 +136,13 @@ export const updateProfile = async (req: Request, res: Response) => {
     }
 
     await profile.save();
-    
+
     console.log("✅ Profile saved successfully");
 
     // ✅ SYNC CRITICAL FIELDS BACK TO USER TABLE
     try {
       const updateData: any = {};
-      
+
       // Sync gender from healthMetrics to User table
       if (req.body.healthMetrics?.gender) {
         updateData.gender = req.body.healthMetrics.gender;
@@ -180,7 +180,7 @@ export const updateProfile = async (req: Request, res: Response) => {
       console.error("⚠️ Failed to sync to User table:", syncError);
       // Don't fail the request - profile is already saved
     }
-    
+
     res.json({
       success: true,
       message: "Profile updated successfully",
@@ -200,18 +200,18 @@ export const updateProfile = async (req: Request, res: Response) => {
 export const deleteProfile = async (req: Request, res: Response) => {
   try {
     const { userId } = req.params;
-    
-    const profile = await Profile.findOneAndDelete({ 
+
+    const profile = await Profile.findOneAndDelete({
       userId: userId
     });
-    
+
     if (!profile) {
       return res.status(404).json({
         success: false,
         message: "Profile not found"
       });
     }
-    
+
     res.json({
       success: true,
       message: "Profile deleted successfully"
