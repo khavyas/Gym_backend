@@ -22,6 +22,14 @@ export const registerUserDto = z.object({
         .min(6, 'Password must be at least 6 characters')
         .max(100, 'Password is too long')
         .optional(),
+    dateOfBirth: z.iso.datetime().optional(),
+    address: z.object({
+        street: z.string().optional(),
+        city: z.string().optional(),
+        state: z.string().optional(),
+        pincode: z.string().optional(),
+    }).optional(),
+    otp: z.string().optional(),
     role: z
         .enum(['user', 'consultant'])
         .default('user')
@@ -64,6 +72,7 @@ export const registerUserDto = z.object({
     subscriptionType: z.enum(['basic', 'premium', 'hiwox']).optional(),
     isHiwoxMember: z.boolean().optional(),
     subscriptionRenewalDate: z.iso.datetime().optional(),
+
 }).strict()
     .refine(
         (data) => data.email || data.phone,

@@ -127,6 +127,11 @@ router.post(
  *                 minLength: 1
  *                 maxLength: 100
  *                 example: "John Doe"
+ *               gender:
+ *                 type: enum
+ *                 enum: [male, female, other]
+ *                 description: User's gender (optional)
+ *                 default: "other"
  *               age:
  *                 type: integer
  *                 description: User's age
@@ -203,6 +208,27 @@ router.post(
  *                 format: date-time
  *                 description: Subscription renewal date (optional)
  *                 example: "2025-01-01T00:00:00.000Z"
+ *               dateOfBirth:
+ *                 type: string
+ *                 format: date
+ *                 description: User's date of birth (optional)
+ *                 example: "1993-01-01T00:00:00.000Z"
+ *               address:
+ *                 type: object
+ *                 description: User's address (optional)
+ *                 properties:
+ *                   street:
+ *                     type: string
+ *                     example: "123 Main St"
+ *                   city:
+ *                     type: string
+ *                     example: "Mumbai"
+ *                   state:
+ *                     type: string
+ *                     example: "Maharashtra"
+ *                   pincode:
+ *                     type: string
+ *                     example: "400001"
  *     responses:
  *       201:
  *         description: User successfully registered
@@ -479,21 +505,25 @@ router.get('/test-email', async (req, res) => {
  *                       type: string
  *                       format: date
  *                       example: "1993-01-15"
- *                     role:
- *                       type: string
- *                       enum: [user, admin, consultant, superadmin]
- *                       example: "user"
  *                     address:
  *                       type: object
  *                       properties:
  *                         street:
  *                           type: string
+ *                           example: "123 Main St"
  *                         city:
  *                           type: string
+ *                           example: "Mumbai"
  *                         state:
  *                           type: string
+ *                           example: "Maharashtra"
  *                         pincode:
  *                           type: string
+ *                           example: "400001"
+ *                     role:
+ *                       type: string
+ *                       enum: [user, admin, consultant, superadmin]
+ *                       example: "user"
  *                     aadharNumber:
  *                       type: string
  *                       example: "123456789012"
