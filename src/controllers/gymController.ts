@@ -1,4 +1,4 @@
-import GymCenter from "../models/Gym.model";
+import GymCenter, { GymCenterType } from "../models/Gym.model";
 import User from "../models/User.model";
 import { CreateGymDto } from "../types/gym.dto";
 import { AuthRequest } from "../types/request-response.dto";
@@ -38,7 +38,12 @@ export const createGym = async (req: AuthRequest<CreateGymDto>, res: Response) =
 // @access Public
 export const getGyms = async (req: AuthRequest, res: Response) => {
   try {
-    const gyms = await GymCenter.find().populate('admin', 'name email');
+    let gyms: GymCenterType[] = [];
+    if (req.user.role === 'admin') {
+      gyms = await GymCenter.find({ admin: req.user._id }).populate('admin', 'name email');
+    } else {
+      gyms = await GymCenter.find().populate('admin', 'name email');
+    }
     res.json(gyms);
   } catch (error) {
     res.status(500).json({ message: error.message });

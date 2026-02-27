@@ -327,7 +327,7 @@ router.get('/', protect, roleCheck(['admin', 'superadmin']), getGyms);
  *                   type: string
  *                   example: "Detailed error message"
  */
-router.post('/', protect, roleCheck(['admin', 'superadmin']), validateRequest(createGymDto), createGym);
+router.post('/', protect, roleCheck(['superadmin']), validateRequest(createGymDto), createGym);
 
 // NEW Route for discovery/search
 router.get('/nearby', getNearbyGyms);

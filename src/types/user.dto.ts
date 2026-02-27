@@ -6,6 +6,10 @@ import { z } from 'zod';
  * Includes Indian standards/ABDM compliance fields
  * Consultant-specific fields are optional and can be filled later in profile
  */
+
+const emptyToUndefined = (schema) =>
+    z.preprocess(v => v === "" ? undefined : v, schema);
+
 export const registerUserDto = z.object({
     name: z.string().min(1, 'Name is required').max(100, 'Name is too long'),
     age: z.number().int().min(1).max(150).optional(),
@@ -69,7 +73,7 @@ export const registerUserDto = z.object({
         'Personal reasons',
         'Other'
     ]).optional(),
-    subscriptionType: z.enum(['basic', 'premium', 'hiwox']).optional(),
+    subscriptionType: z.enum(["basic", "super", "premium"]).optional(),
     isHiwoxMember: z.boolean().optional(),
     subscriptionRenewalDate: z.iso.datetime().optional(),
 

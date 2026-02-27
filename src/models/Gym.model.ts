@@ -32,6 +32,6 @@ const gymCenterSchema = new mongoose.Schema(
 // Add 2dsphere index for geospatial search
 gymCenterSchema.index({ location: '2dsphere' });
 
-type GymCenter = mongoose.InferSchemaType<typeof gymCenterSchema>;
+export type GymCenterType = mongoose.InferSchemaType<typeof gymCenterSchema>;
 
-export default mongoose.model<GymCenter>('GymCenter', gymCenterSchema);
+export default mongoose.model<GymCenterType>('GymCenter', gymCenterSchema);
