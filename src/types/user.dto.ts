@@ -84,13 +84,6 @@ export const registerUserDto = z.object({
             message: 'Either email or phone is required',
             path: ['email'], // Error will be attached to email field
         }
-    )
-    .refine(
-        (data) => data.oauthProvider || data.password,
-        {
-            message: 'Password is required unless using OAuth login.',
-            path: ['password'],
-        }
     );
 // ❌ REMOVED specialty validation - it's optional during registration
 

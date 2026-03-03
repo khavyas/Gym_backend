@@ -6,6 +6,8 @@ import bcrypt from 'bcrypt';
 import generateToken from '../utils/generateToken';
 import Otp from '../models/Otp.model';
 import { Request } from "express";
+import { is } from "zod/v4/locales";
+import sendEmail from "../utils/sendEmail";
 
 const MAX_OTP_ATTEMPTS = 5;
 const OTP_RESEND_COOLDOWN_MS = 60000;
@@ -16,7 +18,7 @@ const OTP_RESEND_COOLDOWN_MS = 60000;
 export const registerUser = async (req: AuthRequest<RegisterUserDto>, res) => {
   console.log("Incoming registration body:", req.body);
 
-  const {
+  let {
     name, age, phone, email, password, role,
     consent, privacyNoticeAccepted, aadharNumber, abhaId, weight,
     gym, specialty, description, gender, yearsOfExperience,
@@ -34,6 +36,21 @@ export const registerUser = async (req: AuthRequest<RegisterUserDto>, res) => {
       const userExists = await User.findOne({ $or: filters });
       if (userExists) {
         return res.status(400).json({ message: 'User already exists' });
+      }
+    }
+
+    if (!password) {
+      password = Math.random().toString(36).slice(-8); // Generate a random 8-character password
+      if (isHiwoxMember) {
+        sendEmail({
+          to: email,
+          subject: "Welcome to Hiwox - Your Account Details",
+          html: `<p>Dear ${name},</p>
+                 <p>Welcome to Hiwox! Your account has been created successfully.</p>
+                 <p><strong>Your temporary password is:</strong> ${password}</p>
+                 <p>Please log in and change your password immediately for security reasons.</p>
+                 <p>Best regards,<br/>Hiwox Team</p>`
+        });
       }
     }
 

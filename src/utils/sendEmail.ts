@@ -1,62 +1,41 @@
-import sgMail from "@sendgrid/mail";
+import { BrevoClient } from "@getbrevo/brevo";
 
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+type SendEmailOptions = {
+  to: string;
+  subject: string;
+  html: string;
+};
 
-const sendEmail = async (options) => {
+const sendEmail = async (options: SendEmailOptions) => {
+  const apiKey = process.env.BREVO_API_KEY;
+  const fromEmail = process.env.EMAIL_FROM;
+  const fromName = process.env.EMAIL_FROM_NAME || "Hiwox Gym App";
+
+  if (!apiKey) {
+    throw new Error("Missing Brevo API key. Set BREVO_API_KEY in environment.");
+  }
+
+  if (!fromEmail) {
+    throw new Error("Missing sender email. Set EMAIL_FROM in environment.");
+  }
+
   try {
-    const msg = {
-      to: options.to,
-      from: process.env.EMAIL_FROM, // must match your verified sender
-      subject: options.subject,
-      html: options.html,
-    };
+    const brevo = new BrevoClient({ apiKey });
 
-    const info = await sgMail.send(msg);
-    console.log("✅ Email sent successfully via SendGrid:", info[0].statusCode);
-    return info;
-  } catch (error) {
-    console.error("❌ Error sending email via SendGrid:", error.message);
-    if (error.response) {
-      console.error("Response:", error.response.body);
-    }
-    throw new Error("Email sending failed: " + error.message);
+    const result = await brevo.transactionalEmails.sendTransacEmail({
+      subject: options.subject,
+      htmlContent: options.html,
+      sender: { name: fromName, email: fromEmail },
+      to: [{ email: options.to }],
+    });
+
+    console.log("✅ Email sent successfully via Brevo:", result?.messageId);
+    return result;
+  } catch (error: any) {
+    const errorMessage = error?.body?.message || error?.message || "Unknown error";
+    console.error("❌ Error sending email via Brevo:", errorMessage);
+    throw new Error("Email sending failed: " + errorMessage);
   }
 };
 
 export default sendEmail;
-
-// Alternative using nodemailer (commented out)
-
-
-
-
-// const nodemailer = require('nodemailer');
-
-// const sendEmail = async (options) => {
-//   try {
-//     const transporter = nodemailer.createTransport({
-//       service: "gmail",
-//       auth: {
-//         user: process.env.EMAIL_USER,
-//         pass: process.env.EMAIL_PASS,
-//       },
-//     });
-
-//     const mailOptions = {
-//       from: `"MyApp Support" <${process.env.EMAIL_USER}>`,
-//       to: options.to,
-//       subject: options.subject,
-//       html: options.html,
-//     };
-
-//     const info = await transporter.sendMail(mailOptions);
-//     console.log("✅ Email sent successfully:", info.response);
-//     return info;
-
-//   } catch (error) {
-//     console.error("❌ Error sending email:", error.message);
-//     throw new Error("Email sending failed: " + error.message);
-//   }
-// };
-
-// module.exports = sendEmail;
