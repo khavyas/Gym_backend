@@ -1,7 +1,7 @@
 import { AuthRequest } from "../types/request-response.dto";
-import { RegisterAdminDto, LoginUserDto, RegisterUserDto, GetUsersQueryDto } from "../types/user.dto";
+import { RegisterAdminDto, LoginUserDto, RegisterUserDto, GetUsersQueryDto, UpdateUserDto } from "../types/user.dto";
 import User, { UserType } from '../models/User.model';
-import Profile from '../models/Profile.model';
+import Profile, { ProfileType } from '../models/Profile.model';
 import bcrypt from 'bcrypt';
 import generateToken from '../utils/generateToken';
 import Otp from '../models/Otp.model';
@@ -19,7 +19,7 @@ export const registerUser = async (req: AuthRequest<RegisterUserDto>, res) => {
   console.log("Incoming registration body:", req.body);
 
   let {
-    name, age, phone, email, password, role,
+    name, age, phone, email, password, role, address,
     consent, privacyNoticeAccepted, aadharNumber, abhaId, weight,
     gym, specialty, description, gender, yearsOfExperience,
     certifications, modeOfTraining, location, website,
@@ -111,12 +111,7 @@ export const registerUser = async (req: AuthRequest<RegisterUserDto>, res) => {
           biometricLogin: false,
           twoFactorAuth: false
         },
-        address: {
-          street: "",
-          city: "",
-          state: "",
-          pincode: ""
-        },
+        address: address ?? undefined,
         membershipStatus: "trial",
         badgeCount: 0,
         achievements: [],
@@ -647,6 +642,124 @@ export const getUsers = async (req: AuthRequest, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error while fetching users'
+    });
+  }
+};
+
+export const updateUser = async (req: AuthRequest<UpdateUserDto>, res) => {
+  try {
+    console.log("Incoming update user :", req.user);
+    if (!req.params.id) {
+      return res.status(401).json({
+        success: false,
+        message: 'Id param required'
+      });
+    }
+
+    const userId = req.params.id;
+
+    const existingUser = await User.findById(userId);
+    const existingProfile = await Profile.findOne({ userId });
+    if (!existingUser) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    if (req.body.phone) {
+      const phoneTaken = await User.findOne({
+        phone: req.body.phone,
+        _id: { $ne: userId }
+      });
+      if (phoneTaken) {
+        return res.status(400).json({
+          success: false,
+          message: 'Phone number already in use'
+        });
+      }
+    }
+
+    const userUpdateData = Object.fromEntries(
+      Object.entries({
+        name: req.body.name,
+        gender: req.body.gender,
+        weight: req.body.weight,
+        phone: req.body.phone,
+        address: req.body.address
+      }).filter(([_, v]) => v !== undefined && v !== null && v !== '')
+    );
+
+    const profileUpdateData = Object.fromEntries(
+      Object.entries({
+        subscriptionType: req.body.subscriptionType,
+        subscriptionRenewalDate: req.body.subscriptionRenewalDate
+          ? new Date(req.body.subscriptionRenewalDate)
+          : undefined,
+        isHiwoxMember: req.body.isHiwoxMember,
+        leavingDate: req.body.leavingDate
+          ? new Date(req.body.leavingDate)
+          : undefined,
+        reasonOfLeaving: req.body.reasonOfLeaving
+      }).filter(([_, v]) => v !== undefined && v !== null)
+    );
+
+    if (Object.keys(userUpdateData).length > 0) {
+      await User.findByIdAndUpdate(
+        userId,
+        { ...userUpdateData, lastModifiedBy: req.user._id },
+        { runValidators: true }
+      );
+    }
+
+    if (Object.keys(profileUpdateData).length > 0) {
+      await Profile.findOneAndUpdate(
+        { userId },
+        { $set: profileUpdateData },
+        { runValidators: true }
+      );
+    }
+
+    const updatedUser: UserType = await User.findById(userId).select('-password -otp -otpAttempts').lean();
+    const updatedProfile: ProfileType = await Profile.findOne({ userId }).lean();
+
+    // IF USER WAS NOT A Hiwox Member BEFORE BUT IS NOW, SEND WELCOME EMAIL AND SET TEMP PASSWORD
+    if (!existingProfile.isHiwoxMember && updatedProfile.isHiwoxMember) {
+      const password = Math.random().toString(36).slice(-8);
+      sendEmail({
+        to: updatedUser.email,
+        subject: "Welcome to Hiwox - Your Membership is Active",
+        html: `<p>Dear ${updatedUser.name},</p>
+                 <p>Welcome to Hiwox! Your account has been created successfully.</p>
+                 <p><strong>Your temporary password is:</strong> ${password}</p>
+                 <p>Please log in and change your password immediately for security reasons.</p>
+                 <p>Best regards,<br/>Hiwox Team</p>`
+      });
+
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(password, salt);
+
+      await User.findByIdAndUpdate(
+        userId,
+        { password: hashedPassword },
+        { runValidators: true }
+      );
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'User updated successfully',
+      data: {
+        user: updatedUser,
+        profile: updatedProfile || null
+      }
+    });
+
+  } catch (error) {
+    console.error('Update user error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while updating user'
     });
   }
 };

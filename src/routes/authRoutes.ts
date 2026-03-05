@@ -1,8 +1,8 @@
 import express from "express";
-import { registerUser, loginUser, changePassword, registerAdmin, verifyOtpAndRegister, getMe, getUsers } from "../controllers/authController";
+import { registerUser, loginUser, changePassword, registerAdmin, verifyOtpAndRegister, getMe, getUsers, updateUser } from "../controllers/authController";
 import sendEmail from '../utils/sendEmail';
 import { roleCheck, protect } from "../middleware/authMiddleware";
-import { registerUserDto, registerAdminDto, loginUserDto, getUsersQueryDto } from "../types/user.dto";
+import { registerUserDto, registerAdminDto, loginUserDto, getUsersQueryDto, updateUserDto } from "../types/user.dto";
 import { validateRequest } from "../middleware/zodValidation";
 
 const router = express.Router();
@@ -742,4 +742,5 @@ router.get('/me', protect, getMe);
  */
 router.get('/users', protect, roleCheck(['admin', 'superadmin']), validateRequest(getUsersQueryDto, 'query'), getUsers);
 
+router.patch('/users/:id', protect, roleCheck(['admin', 'superadmin']), validateRequest(updateUserDto, 'body'), updateUser);
 export default router;

@@ -120,7 +120,6 @@ const profileSchema = new mongoose.Schema(
         'Personal reasons',
         'Other'
       ],
-      default: 'Other'
     },
     subscriptionType: {
       type: String,

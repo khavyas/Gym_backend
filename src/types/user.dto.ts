@@ -85,7 +85,6 @@ export const registerUserDto = z.object({
             path: ['email'], // Error will be attached to email field
         }
     );
-// ❌ REMOVED specialty validation - it's optional during registration
 
 /**
  * Verify OTP and Register DTO
@@ -176,24 +175,30 @@ export const loginUserDto = z.object({
  */
 export const updateUserDto = z.object({
     name: z.string().min(1, 'Name cannot be empty').max(100, 'Name is too long').optional(),
-    age: z.number().int().min(1).max(150).optional(),
     gender: z.enum(['male', 'female', 'other']).optional(),
     weight: z.number().positive('Weight must be a positive number').optional(),
     phone: z.string().optional(),
-    email: z
-        .email('Invalid email format')
-        .toLowerCase()
-        .trim()
-        .optional(),
-    password: z
-        .string()
-        .min(6, 'Password must be at least 6 characters')
-        .max(100, 'Password is too long')
-        .optional(),
-    role: z
-        .enum(['user', 'admin', 'consultant', 'superadmin'])
-        .optional(),
-});
+    address: z.object({
+        street: z.string().optional(),
+        city: z.string().optional(),
+        state: z.string().optional(),
+        pincode: z.string().optional(),
+    }).optional(),
+    subscriptionType: z.enum(["basic", "super", "premium"]).optional(),
+    subscriptionRenewalDate: z.iso.datetime().optional(),
+    isHiwoxMember: z.boolean().optional(),
+    leavingDate: z.iso.datetime().optional(),
+    reasonOfLeaving: z.enum([
+        'Relocation',
+        'Financial reasons',
+        'Lack of time',
+        'Health issues',
+        'Dissatisfaction with services',
+        'Joined another gym',
+        'Personal reasons',
+        'Other'
+    ]).optional(),
+}).strict() // Disallow unknown fields;
 
 /**
  * Forgot Password Request DTO
