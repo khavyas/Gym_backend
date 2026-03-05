@@ -18,7 +18,7 @@ import mongoose from "mongoose";
 import workoutRoutes from './routes/workoutRoutes';
 import wellnessRoutes from './routes/wellnessRoutes';
 import menstrualCycleRoutes from './routes/menstrualCycleRoutes';
-
+import checkInRoutes from './routes/checkInRoutes';
 
 dotenv.config();
 connectDB();
@@ -62,7 +62,9 @@ app.use('/api/meals', mealRoutes);
 app.use('/api/workouts', workoutRoutes);
 app.use('/api/wellness', wellnessRoutes);
 app.use('/api/menstrual-cycle', menstrualCycleRoutes);
-
+app.use('/api/wellness', wellnessRoutes);
+app.use('/api/checkin', checkInRoutes);
+app.use('/api/menstrual-cycle', menstrualCycleRoutes);
 
 // 404 handler
 app.use((req, res) => {
