@@ -742,5 +742,112 @@ router.get('/me', protect, getMe);
  */
 router.get('/users', protect, roleCheck(['admin', 'superadmin']), validateRequest(getUsersQueryDto, 'query'), getUsers);
 
+/**
+ * @swagger
+ * /api/auth/users/{id}:
+ *   patch:
+ *     tags: [Authentication]
+ *     summary: Update user and profile details
+ *     description: Update allowed user and profile fields by user ID. Requires authentication and admin/superadmin role.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: User ID to update
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 minLength: 1
+ *                 maxLength: 100
+ *                 example: "John Doe"
+ *               gender:
+ *                 type: string
+ *                 enum: [male, female, other]
+ *                 example: "male"
+ *               weight:
+ *                 type: number
+ *                 minimum: 0.1
+ *                 example: 72.5
+ *               phone:
+ *                 type: string
+ *                 example: "9876543210"
+ *               address:
+ *                 type: object
+ *                 properties:
+ *                   street:
+ *                     type: string
+ *                     example: "123 Main St"
+ *                   city:
+ *                     type: string
+ *                     example: "Mumbai"
+ *                   state:
+ *                     type: string
+ *                     example: "Maharashtra"
+ *                   pincode:
+ *                     type: string
+ *                     example: "400001"
+ *               subscriptionType:
+ *                 type: string
+ *                 enum: [basic, super, premium]
+ *                 example: "premium"
+ *               subscriptionRenewalDate:
+ *                 type: string
+ *                 format: date-time
+ *                 example: "2026-12-31T00:00:00.000Z"
+ *               isHiwoxMember:
+ *                 type: boolean
+ *                 example: true
+ *               leavingDate:
+ *                 type: string
+ *                 format: date-time
+ *                 example: "2026-06-01T00:00:00.000Z"
+ *               reasonOfLeaving:
+ *                 type: string
+ *                 enum: [Relocation, Financial reasons, Lack of time, Health issues, Dissatisfaction with services, Joined another gym, Personal reasons, Other]
+ *                 example: "Relocation"
+ *     responses:
+ *       200:
+ *         description: User updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "User updated successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user:
+ *                       type: object
+ *                     profile:
+ *                       type: object
+ *                       nullable: true
+ *       400:
+ *         description: Validation error or phone number already in use
+ *       401:
+ *         description: Unauthorized or missing ID parameter
+ *       403:
+ *         description: Forbidden - admin/superadmin role required
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error while updating user
+ */
 router.patch('/users/:id', protect, roleCheck(['admin', 'superadmin']), validateRequest(updateUserDto, 'body'), updateUser);
+
 export default router;
