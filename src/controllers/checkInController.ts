@@ -11,24 +11,31 @@ export const getCheckInQuestions = async (req: Request, res: Response) => {
   try {
     const questions = await CheckInQuestion.find({ isActive: true })
       .sort({ order: 1 })
+      .populate('domain')
       .select('-__v');
 
     // Group by domainId so frontend can render domain by domain
     const grouped: Record<string, any> = {};
 
     questions.forEach((q) => {
-      if (!grouped[q.domainId]) {
-        grouped[q.domainId] = {
-          id: q.domainId,
-          label: q.domainLabel,
-          icon: q.domainIcon,
-          color: q.domainColor,
-          gradientColors: q.domainGradientColors,
+      const domain = q.domain as any;
+      if (!domain) {
+        return;
+      }
+
+      const domainKey = String(domain._id);
+      if (!grouped[domainKey]) {
+        grouped[domainKey] = {
+          id: domain.domainId,
+          label: domain.domainLabel,
+          icon: domain.domainIcon,
+          color: domain.domainColor,
+          gradientColors: domain.domainGradientColors,
           questions: [],
         };
       }
 
-      grouped[q.domainId].questions.push({
+      grouped[domainKey].questions.push({
         field: q.field,
         label: q.label,
         type: q.type,

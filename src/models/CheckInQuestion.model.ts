@@ -1,16 +1,20 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
+export interface IThreshold {
+  min_value: number;
+  max_value: number;
+  label: "red" | "yellow" | "green";
+}
+
 export interface ICheckInQuestion extends Document {
   field: string;
   label: string;
   type: 'scale' | 'number' | 'yesno' | 'dropdown';
-  domainId: string;
-  domainLabel: string;
-  domainIcon: string;
-  domainColor: string;
-  domainGradientColors: [string, string];
+  domain: mongoose.Types.ObjectId;
+  weight: number;
   min?: number;
   max?: number;
+  threshold?: IThreshold[];
   unit?: string;
   lowLabel?: string;
   highLabel?: string;
@@ -30,25 +34,33 @@ const CheckInQuestionSchema = new Schema<ICheckInQuestion>(
       enum: ['scale', 'number', 'yesno', 'dropdown'],
       required: true,
     },
-    domainId:    { type: String, required: true },
-    domainLabel: { type: String, required: true },
-    domainIcon:  { type: String, required: true },
-    domainColor: { type: String, required: true },
-    domainGradientColors: { type: [String], required: true },
-    min:          { type: Number },
-    max:          { type: Number },
-    unit:         { type: String },
-    lowLabel:     { type: String },
-    highLabel:    { type: String },
-    options:      { type: [String], default: undefined },
-    optional:     { type: Boolean, default: false },
-    invertedScore:{ type: Boolean, default: false },
-    order:        { type: Number, required: true },
-    isActive:     { type: Boolean, default: true },
+    domain: { type: Schema.Types.ObjectId, ref: 'Domain', required: true },
+    weight: { type: Number, default: 1 },
+    min: { type: Number },
+    max: { type: Number },
+    threshold: [
+      {
+        min_value: { type: Number, required: true },
+        max_value: { type: Number, required: true },
+        label: {
+          type: String,
+          enum: ['red', 'yellow', 'green'],
+          required: true,
+        },
+      },
+    ],
+    unit: { type: String },
+    lowLabel: { type: String },
+    highLabel: { type: String },
+    options: { type: [String], default: undefined },
+    optional: { type: Boolean, default: false },
+    invertedScore: { type: Boolean, default: false },
+    order: { type: Number, required: true },
+    isActive: { type: Boolean, default: true },
   },
   { timestamps: true }
 );
 
-CheckInQuestionSchema.index({ domainId: 1, order: 1 });
+CheckInQuestionSchema.index({ domain: 1, order: 1 });
 
 export default mongoose.model<ICheckInQuestion>('CheckInQuestion', CheckInQuestionSchema);
