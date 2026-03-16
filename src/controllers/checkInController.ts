@@ -136,16 +136,11 @@ export const submitCheckIn = async (req: AuthRequest<CheckInResponseDto>, res: R
     }
 
     // All validation passed — save the response
-    const response = await CheckInResponse.findOneAndUpdate(
-      { userId },
-      {
-        $set: {
-          userId,
-          answers,
-          submittedAt: new Date(),
-        },
-      },
-      { upsert: true, new: true, runValidators: true }
+    const response = await CheckInResponse.create({
+      userId,
+      answers,
+      submittedAt: new Date()
+    }
     );
 
     res.status(200).json({

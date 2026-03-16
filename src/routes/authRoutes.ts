@@ -835,7 +835,7 @@ router.get('/me', protect, getMe);
  *       500:
  *         description: Server error
  */
-router.get('/users', protect, roleCheck(['admin', 'superadmin']), validateRequest(getUsersQueryDto, 'query'), getUsers);
+router.get('/users', protect, roleCheck(['admin', 'superadmin', 'coordinator']), validateRequest(getUsersQueryDto, 'query'), getUsers);
 
 /**
  * @swagger

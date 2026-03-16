@@ -18,7 +18,6 @@ const CheckInResponseSchema = new Schema<ICheckInResponse>(
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: true,
-      unique: true,   // one response doc per user, upserted each time
       index: true,
     },
     answers: {
