@@ -124,7 +124,7 @@ const userSchema = new mongoose.Schema(
     oauthId: { type: String },
     role: {
       type: String,
-      enum: ['user', 'admin', 'consultant', 'superadmin'],
+      enum: ['user', 'admin', 'consultant', 'superadmin', 'coordinator'],
       default: 'user'
     },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },

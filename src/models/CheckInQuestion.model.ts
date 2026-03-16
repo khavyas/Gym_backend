@@ -7,9 +7,10 @@ export interface IThreshold {
 }
 
 export interface ICheckInQuestion extends Document {
+  _id: mongoose.Types.ObjectId;
   field: string;
   label: string;
-  type: 'scale' | 'number' | 'yesno' | 'dropdown';
+  type: 'scale' | 'number' | 'dropdown';
   domain: mongoose.Types.ObjectId;
   weight: number;
   min?: number;
@@ -38,8 +39,8 @@ const CheckInQuestionSchema = new Schema<ICheckInQuestion>(
     weight: { type: Number, default: 1 },
     min: { type: Number },
     max: { type: Number },
-    threshold: [
-      {
+    threshold: {
+      type: [{
         min_value: { type: Number, required: true },
         max_value: { type: Number, required: true },
         label: {
@@ -47,8 +48,8 @@ const CheckInQuestionSchema = new Schema<ICheckInQuestion>(
           enum: ['red', 'yellow', 'green'],
           required: true,
         },
-      },
-    ],
+      }],
+    },
     unit: { type: String },
     lowLabel: { type: String },
     highLabel: { type: String },

@@ -122,7 +122,7 @@ export const verifyOtpAndRegisterDto = z.object({
     );
 // ❌ REMOVED specialty validation here too
 
-export const registerAdminDto = z.object({
+export const registerAdminCoordinatorDto = z.object({
     name: z.string().min(1, 'Name is required').max(100, 'Name is too long'),
     age: z.number().int().min(1).max(150).optional(),
     phone: z.string().optional(),
@@ -286,7 +286,7 @@ export const getUsersQueryDto = z.object({
 // Type exports for TypeScript usage
 export type RegisterUserDto = z.infer<typeof registerUserDto>;
 export type VerifyOtpAndRegisterDto = z.infer<typeof verifyOtpAndRegisterDto>;
-export type RegisterAdminDto = z.infer<typeof registerAdminDto>;
+export type RegisterAdminCoordinatorDto = z.infer<typeof registerAdminCoordinatorDto>;
 export type LoginUserDto = z.infer<typeof loginUserDto>;
 export type UpdateUserDto = z.infer<typeof updateUserDto>;
 export type ForgotPasswordDto = z.infer<typeof forgotPasswordDto>;

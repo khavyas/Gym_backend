@@ -1,5 +1,5 @@
 import { AuthRequest } from "../types/request-response.dto";
-import { RegisterAdminDto, LoginUserDto, RegisterUserDto, GetUsersQueryDto, UpdateUserDto } from "../types/user.dto";
+import { RegisterAdminCoordinatorDto, LoginUserDto, RegisterUserDto, GetUsersQueryDto, UpdateUserDto } from "../types/user.dto";
 import User, { UserType } from '../models/User.model';
 import Profile, { ProfileType } from '../models/Profile.model';
 import bcrypt from 'bcrypt';
@@ -219,7 +219,7 @@ export const registerUser = async (req: AuthRequest<RegisterUserDto>, res) => {
 };
 
 // @desc Register new admin (with automatic Profile creation)
-export const registerAdmin = async (req: AuthRequest<RegisterAdminDto>, res) => {
+export const registerAdmin = async (req: AuthRequest<RegisterAdminCoordinatorDto>, res) => {
   console.log("Incoming admin registration body:", req.body);
 
   const { name, age, phone, email, password, gender } = req.body;
@@ -253,33 +253,6 @@ export const registerAdmin = async (req: AuthRequest<RegisterAdminDto>, res) => 
       phoneVerified: phone ? true : false,
     });
 
-    // ✅ AUTOMATICALLY CREATE PROFILE FOR ADMIN
-    try {
-      await Profile.create({
-        userId: admin._id,
-        fullName: name,
-        email: email.toLowerCase().trim(),
-        phone: phone || "",
-        bio: "System Administrator",
-        profileImage: null,
-        healthMetrics: {
-          weight: "",
-          height: "",
-          age: age?.toString() || "",
-          gender: gender || "male",
-          fitnessGoal: "general_fitness"
-        },
-        membershipStatus: "active",
-        badgeCount: 0,
-        achievements: [],
-        logincount: 0
-      });
-
-      console.log("✅ Profile created automatically for admin:", admin._id);
-    } catch (profileError) {
-      console.error("⚠️ Failed to create profile for admin:", profileError);
-    }
-
     res.status(201).json({
       userId: admin._id,
       name: admin.name,
@@ -288,6 +261,55 @@ export const registerAdmin = async (req: AuthRequest<RegisterAdminDto>, res) => 
       age: admin.age,
       gender: admin.gender,
       token: generateToken(admin._id),
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc Register new coordinator
+export const registerCoordinator = async (req: AuthRequest<RegisterAdminCoordinatorDto>, res) => {
+  console.log("Incoming coordinator registration body:", req.body);
+
+  const { name, age, phone, email, password, gender } = req.body;
+
+  try {
+    const coordinatorExists = await User.findOne({ email: email.toLowerCase().trim() });
+    if (coordinatorExists) {
+      return res.status(400).json({ message: 'Coordinator with this email already exists' });
+    }
+
+    if (phone) {
+      const phoneExists = await User.findOne({ phone: phone.trim() });
+      if (phoneExists) {
+        return res.status(400).json({ message: 'User with this phone number already exists' });
+      }
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+    const coordinator = await User.create({
+      name,
+      age,
+      gender: gender || "male",
+      phone: phone,
+      email: email.toLowerCase().trim(),
+      password: hashedPassword,
+      role: 'coordinator',
+      consent: true,
+      privacyNoticeAccepted: true,
+      emailVerified: true,
+      phoneVerified: phone ? true : false,
+    });
+
+    res.status(201).json({
+      userId: coordinator._id,
+      name: coordinator.name,
+      email: coordinator.email,
+      role: coordinator.role,
+      age: coordinator.age,
+      gender: coordinator.gender,
+      token: generateToken(coordinator._id),
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

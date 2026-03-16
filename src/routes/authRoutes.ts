@@ -1,8 +1,8 @@
 import express from "express";
-import { registerUser, loginUser, changePassword, registerAdmin, verifyOtpAndRegister, getMe, getUsers, updateUser } from "../controllers/authController";
+import { registerUser, loginUser, changePassword, registerAdmin, registerCoordinator, verifyOtpAndRegister, getMe, getUsers, updateUser } from "../controllers/authController";
 import sendEmail from '../utils/sendEmail';
 import { roleCheck, protect } from "../middleware/authMiddleware";
-import { registerUserDto, registerAdminDto, loginUserDto, getUsersQueryDto, updateUserDto } from "../types/user.dto";
+import { registerUserDto, registerAdminCoordinatorDto, loginUserDto, getUsersQueryDto, updateUserDto } from "../types/user.dto";
 import { validateRequest } from "../middleware/zodValidation";
 
 const router = express.Router();
@@ -98,8 +98,103 @@ router.post(
     '/register/admin',
     protect,
     roleCheck(['superadmin']),
-    validateRequest(registerAdminDto),
+    validateRequest(registerAdminCoordinatorDto),
     registerAdmin
+);
+
+/**
+ * @swagger
+ * /api/auth/register/coordinator:
+ *   post:
+ *     tags: [Authentication]
+ *     summary: Register a new coordinator (superadmin only)
+ *     description: Register a new coordinator account. Requires authentication and superadmin role.
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - email
+ *               - password
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Coordinator's full name
+ *                 minLength: 1
+ *                 maxLength: 100
+ *                 example: "Coordinator User"
+ *               age:
+ *                 type: integer
+ *                 description: Coordinator's age (optional)
+ *                 minimum: 1
+ *                 maximum: 150
+ *                 example: 30
+ *               phone:
+ *                 type: string
+ *                 description: Coordinator's phone number (optional)
+ *                 example: "9876543210"
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: Coordinator's email address (required)
+ *                 example: "coordinator@example.com"
+ *               password:
+ *                 type: string
+ *                 description: Coordinator's password (required)
+ *                 minLength: 6
+ *                 maxLength: 100
+ *                 example: "secureCoordinatorPassword123"
+ *     responses:
+ *       201:
+ *         description: Coordinator successfully registered
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 userId:
+ *                   type: string
+ *                 name:
+ *                   type: string
+ *                 email:
+ *                   type: string
+ *                 role:
+ *                   type: string
+ *                 token:
+ *                   type: string
+ *       400:
+ *         description: Invalid input data or validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Validation failed"
+ *                 errors:
+ *                   type: object
+ *       401:
+ *         description: Unauthorized - authentication required
+ *       403:
+ *         description: Forbidden - superadmin role required
+ *       500:
+ *         description: Server error
+ */
+router.post(
+    '/register/coordinator',
+    protect,
+    roleCheck(['superadmin']),
+    validateRequest(registerAdminCoordinatorDto),
+    registerCoordinator
 );
 
 

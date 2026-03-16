@@ -1,6 +1,9 @@
 import { Request, Response } from 'express';
 import CheckInQuestion from '../models/CheckInQuestion.model';
 import CheckInResponse from '../models/CheckInResponse.model';
+import { CheckInResponseDto } from '../types/checkin.dto';
+import { AuthRequest } from '../types/request-response.dto';
+import User, { UserType } from '../models/User.model';
 
 // ─────────────────────────────────────────────
 // GET /api/checkin/questions
@@ -36,6 +39,7 @@ export const getCheckInQuestions = async (req: Request, res: Response) => {
       }
 
       grouped[domainKey].questions.push({
+        id: q._id,
         field: q.field,
         label: q.label,
         type: q.type,
@@ -62,20 +66,76 @@ export const getCheckInQuestions = async (req: Request, res: Response) => {
 // ─────────────────────────────────────────────
 // POST /api/checkin/submit
 // Save or update a user's check-in answers
-// Body: { userId, answers: { field: value, ... } }
+// Body: { userId, answers: [{ questionId, value }, ...] }
 // Upserts — so re-submitting updates existing doc
 // ─────────────────────────────────────────────
-export const submitCheckIn = async (req: Request, res: Response) => {
+export const submitCheckIn = async (req: AuthRequest<CheckInResponseDto>, res: Response) => {
   try {
     const { userId, answers } = req.body;
 
-    if (!userId || !answers || typeof answers !== 'object') {
-      return res.status(400).json({
-        success: false,
-        message: 'userId and answers are required',
-      });
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(400).json({ success: false, message: 'Invalid userId' });
     }
 
+    // Validate that each questionId in answers exists and that the value meets the question's constraints
+    const questionIds = answers.map((a: any) => a.questionId);
+    const questions = await CheckInQuestion.find({ _id: { $in: questionIds } })
+      .select('type min max options')
+      .lean();
+
+    const questionById = new Map<string, any>(
+      questions.map((q: any) => [String(q._id), q])
+    );
+
+    // Validate each answer against its question's constraints
+    for (const answer of answers) {
+      const question = questionById.get(String(answer.questionId));
+      if (!question) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid questionId: ${answer.questionId}`,
+        });
+      }
+
+      if (question.type === 'number' || question.type === 'scale') {
+        if (typeof answer.value !== 'number') {
+          return res.status(400).json({
+            success: false,
+            message: `Answer for question ${answer.questionId} must be a number`,
+          });
+        }
+        if (typeof question.min === 'number' && answer.value < question.min) {
+          return res.status(400).json({
+            success: false,
+            message: `Answer for question ${answer.questionId} must be >= ${question.min}`,
+          });
+        }
+        if (typeof question.max === 'number' && answer.value > question.max) {
+          return res.status(400).json({
+            success: false,
+            message: `Answer for question ${answer.questionId} must be <= ${question.max}`,
+          });
+        }
+      }
+
+      if (question.type === 'dropdown') {
+        if (typeof answer.value !== 'string') {
+          return res.status(400).json({
+            success: false,
+            message: `Answer for question ${answer.questionId} must be a string`,
+          });
+        }
+        if (Array.isArray(question.options) && !question.options.includes(answer.value)) {
+          return res.status(400).json({
+            success: false,
+            message: `Answer for question ${answer.questionId} must be one of the allowed options`,
+          });
+        }
+      }
+    }
+
+    // All validation passed — save the response
     const response = await CheckInResponse.findOneAndUpdate(
       { userId },
       {
@@ -85,7 +145,7 @@ export const submitCheckIn = async (req: Request, res: Response) => {
           submittedAt: new Date(),
         },
       },
-      { upsert: true, new: true }
+      { upsert: true, new: true, runValidators: true }
     );
 
     res.status(200).json({

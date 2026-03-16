@@ -1,8 +1,13 @@
 import mongoose, { Schema, Document, Types } from 'mongoose';
 
+interface IAnswer {
+  questionId: Types.ObjectId;
+  value: number | string; // handles number, yesno (as string), dropdown (as string), and multiple options (as string[])
+}
+
 export interface ICheckInResponse extends Document {
   userId: Types.ObjectId;
-  answers: Map<string, string | number | string[]>;
+  answers: IAnswer[];
   submittedAt: Date;
   updatedAt: Date;
 }
@@ -17,8 +22,12 @@ const CheckInResponseSchema = new Schema<ICheckInResponse>(
       index: true,
     },
     answers: {
-      type: Map,
-      of: Schema.Types.Mixed,  // handles number, string, string[], yesno
+      type: [
+        {
+          questionId: { type: Schema.Types.ObjectId, ref: 'CheckInQuestion', required: true },
+          value: { type: Schema.Types.Mixed, required: true }, // can be number or string based on question type
+        }
+      ],
       required: true,
     },
     submittedAt: {
