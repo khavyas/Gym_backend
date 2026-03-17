@@ -1,9 +1,9 @@
 import { Request, Response } from 'express';
 import CheckInQuestion from '../models/CheckInQuestion.model';
 import CheckInResponse from '../models/CheckInResponse.model';
-import { CheckInResponseDto } from '../types/checkin.dto';
 import { AuthRequest } from '../types/request-response.dto';
 import User, { UserType } from '../models/User.model';
+import { CheckInResponseDto } from '../types/checkIn.dto';
 
 // ─────────────────────────────────────────────
 // GET /api/checkin/questions

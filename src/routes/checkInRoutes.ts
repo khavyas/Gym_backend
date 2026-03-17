@@ -7,7 +7,7 @@ import {
 } from '../controllers/checkInController';
 import { protect, roleCheck } from '../middleware/authMiddleware';
 import { validateRequest } from '../middleware/zodValidation';
-import { checkInResponseDto } from '../types/checkin.dto';
+import { checkInResponseDto } from '../types/checkIn.dto';
 
 const router = Router();
 

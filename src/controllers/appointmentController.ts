@@ -7,18 +7,18 @@ import mongoose from 'mongoose';
 const canModify = async (reqUser, appointment) => {
   if (!reqUser) return false;
   const uid = String(reqUser._id);
-  
+
   // Admins can always modify
   if (['admin', 'superadmin'].includes(reqUser.role)) return true;
-  
+
   // User who created the appointment can modify
   if (String(appointment.user) === uid) return true;
-  
+
   // ✅ FIX: Check if the logged-in user is the consultant for this appointment
   // Need to find the consultant document and check its user field
   const consultant = await Consultant.findById(appointment.consultant);
   if (consultant && String(consultant.user) === uid) return true;
-  
+
   return false;
 };
 
@@ -69,7 +69,7 @@ export const createAppointment = async (req, res) => {
 
     const appt = await Appointment.create({
       user: req.user._id,
-      consultant: consultantId, 
+      consultant: consultantId,
       startAt: start,
       endAt: end,
       title,
@@ -86,7 +86,7 @@ export const createAppointment = async (req, res) => {
       .populate('consultant', 'name specialty contact');
 
     return res.status(201).json(populated);
-  } catch (err) {
+  } catch (err: any) {
     console.error('createAppointment error:', err);
     return res.status(500).json({ message: err.message || 'Server error' });
   }
@@ -113,14 +113,14 @@ export const getAppointments = async (req, res) => {
         if (!consultant) {
           return res.status(404).json({ message: 'Consultant not found' });
         }
-        
+
         if (String(consultant.user) !== String(req.user._id)) {
           return res.status(403).json({ message: 'Access denied to this consultant' });
         }
       } else {
         const userConsultants = await Consultant.find({ user: req.user._id });
         const consultantIds = userConsultants.map(c => c._id);
-        
+
         filter['$or'] = [
           { user: req.user._id },
           { consultant: { $in: consultantIds } }
@@ -134,7 +134,7 @@ export const getAppointments = async (req, res) => {
       .populate('consultant', 'name specialty contact');
 
     res.json(appointments);
-  } catch (err) {
+  } catch (err: any) {
     console.error('getAppointments error:', err);
     res.status(500).json({ message: err.message });
   }
@@ -153,7 +153,7 @@ export const getAppointmentById = async (req, res) => {
     if (!canEdit) return res.status(403).json({ message: 'Forbidden' });
 
     res.json(appt);
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 };
@@ -168,7 +168,7 @@ export const updateAppointment = async (req, res) => {
     if (!canEdit) return res.status(403).json({ message: 'Forbidden' });
 
     const updates = { ...req.body };
-    
+
     // Prevent non-admins from changing user/consultant
     if (!['admin', 'superadmin'].includes(req.user.role)) {
       delete updates.user;
@@ -186,10 +186,10 @@ export const updateAppointment = async (req, res) => {
       };
 
       const allowedStatuses = validTransitions[appt.status] || [];
-      
+
       if (!allowedStatuses.includes(updates.status) && !['admin', 'superadmin'].includes(req.user.role)) {
-        return res.status(400).json({ 
-          message: `Cannot change status from ${appt.status} to ${updates.status}` 
+        return res.status(400).json({
+          message: `Cannot change status from ${appt.status} to ${updates.status}`
         });
       }
 

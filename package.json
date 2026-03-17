@@ -7,7 +7,7 @@
     "node": "25.x"
   },
   "scripts": {
-    "dev": "ts-node-dev --respawn src/server.ts",
+    "dev": "ts-node-dev --respawn --transpile-only false src/server.ts",
     "start": "node dist/server.js",
     "build": "tsc -p tsconfig.json",
     "type-check": "tsc --noEmit",
