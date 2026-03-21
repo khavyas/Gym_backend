@@ -11,6 +11,7 @@ export interface ICheckInQuestion extends Document {
   field: string;
   label: string;
   type: 'scale' | 'number' | 'dropdown';
+  target: 'coordinator' | 'user';
   domain: mongoose.Types.ObjectId;
   weight: number;
   min?: number;
@@ -32,7 +33,12 @@ const CheckInQuestionSchema = new Schema<ICheckInQuestion>(
     label: { type: String, required: true, trim: true },
     type: {
       type: String,
-      enum: ['scale', 'number', 'yesno', 'dropdown'],
+      enum: ['scale', 'number', 'dropdown'],
+      required: true,
+    },
+    target: {
+      type: String,
+      enum: ['coordinator', 'user'],
       required: true,
     },
     domain: { type: Schema.Types.ObjectId, ref: 'Domain', required: true },

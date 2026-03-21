@@ -18,14 +18,20 @@ export const checkInAnswerDto = z.object({
  * Check-In Response DTO
  * Used for validating a stored check-in response
  */
-export const checkInResponseDto = z.object({
+export const submitCheckInResponseDto = z.object({
     _id: z.string().optional(),
     userId: z.string().min(1, 'userId is required'),
+    note: z.string().optional(),
     answers: z.array(checkInAnswerDto).min(1, 'answers are required'),
     submittedAt: z.string().optional(),
     updatedAt: z.string().optional(),
     createdAt: z.string().optional(),
 }).strict();
 
+export const getCheckInQuestionQueryDto = z.object({
+    target: z.enum(['user', 'coordinator']).default('user'),
+}).strict();
+
 export type CheckInAnswerDto = z.infer<typeof checkInAnswerDto>;
-export type CheckInResponseDto = z.infer<typeof checkInResponseDto>;
+export type SubmitCheckInResponseDto = z.infer<typeof submitCheckInResponseDto>;
+export type GetCheckInQuestionQueryDto = z.infer<typeof getCheckInQuestionQueryDto>;

@@ -7,7 +7,7 @@ import {
 } from '../controllers/checkInController';
 import { protect, roleCheck } from '../middleware/authMiddleware';
 import { validateRequest } from '../middleware/zodValidation';
-import { checkInResponseDto } from '../types/checkIn.dto';
+import { getCheckInQuestionQueryDto, submitCheckInResponseDto } from '../types/checkIn.dto';
 
 const router = Router();
 
@@ -163,7 +163,7 @@ const router = Router();
  *       500:
  *         description: Failed to fetch questions
  */
-router.get('/questions', protect, getCheckInQuestions);
+router.get('/questions', protect, validateRequest(getCheckInQuestionQueryDto,'query'), getCheckInQuestions);
 
 // ─────────────────────────────────────────────
 // RESPONSES
@@ -206,7 +206,7 @@ router.get('/questions', protect, getCheckInQuestions);
  *       500:
  *         description: Failed to submit check-in
  */
-router.post('/submit', protect, validateRequest(checkInResponseDto), submitCheckIn);
+router.post('/submit', protect, validateRequest(submitCheckInResponseDto), submitCheckIn);
 
 // GET /api/checkin/responses
 // Admin only — view all users' responses

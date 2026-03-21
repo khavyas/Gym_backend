@@ -7,6 +7,8 @@ interface IAnswer {
 
 export interface ICheckInResponse extends Document {
   userId: Types.ObjectId;
+  submittedBy: Types.ObjectId;
+  note: string;
   answers: IAnswer[];
   submittedAt: Date;
   updatedAt: Date;
@@ -19,6 +21,15 @@ const CheckInResponseSchema = new Schema<ICheckInResponse>(
       ref: 'User',
       required: true,
       index: true,
+    },
+    submittedBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
+    note: {
+      type: String,
+      trim: true,
     },
     answers: {
       type: [
