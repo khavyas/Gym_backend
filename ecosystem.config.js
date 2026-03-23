@@ -1,8 +1,8 @@
 module.exports = {
     apps: [
         {
-            name: "backend",
-            script: "dist/main.js",
+            name: "server",
+            script: "dist/server.js",
             instances: 1,
             autorestart: true,
             max_memory_restart: "300M",
