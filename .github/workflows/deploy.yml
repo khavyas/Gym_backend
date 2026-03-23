@@ -20,7 +20,7 @@ jobs:
           script: |
             set -e
 
-            cd /home/ubuntu/Gym_backend
+            cd ~/Gym_backend
 
             git fetch origin main
             git reset --hard origin/main
