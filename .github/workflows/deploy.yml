@@ -18,14 +18,20 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
           script: |
-            set -e
+            set -e  # exit if any command fails
 
+            # Go to project directory
             cd ~/Gym_backend
 
+            # Pull latest code
             git fetch origin main
             git reset --hard origin/main
 
+            # Install dependencies
             npm ci
+
+            # Build TypeScript to dist
             npm run build
 
+            # Restart backend with PM2
             pm2 reload ecosystem.config.js
