@@ -4,5 +4,6 @@
         "main",
         "main",
         "main"
-    ]
+    ],
+    "postman.settings.dotenv-detection-notification-visibility": false
 }
