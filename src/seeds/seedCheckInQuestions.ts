@@ -22,13 +22,13 @@ const CHECKIN_DOMAINS = [
         type: 'number',
         target: 'coordinator',
         min: 0,
-        max: 50000,
+        max: 15000,
         unit: 'steps',
         weight: 0.05,
         threshold: [
           { min_value: 0, max_value: 3999, label: 'red' },
           { min_value: 4000, max_value: 7500, label: 'yellow' },
-          { min_value: 7501, max_value: 50000, label: 'green' },
+          { min_value: 7501, max_value: 15000, label: 'green' },
         ],
       },
       // Q2 – Recovery: Restful Sleep Hours
@@ -38,19 +38,19 @@ const CHECKIN_DOMAINS = [
         type: 'number',
         target: 'coordinator',
         min: 0,
-        max: 24,
+        max: 15,
         unit: 'hours',
         weight: 0.06,
         threshold: [
           { min_value: 0, max_value: 5.49, label: 'red' },
           { min_value: 5.5, max_value: 7, label: 'yellow' },
-          { min_value: 7.01, max_value: 24, label: 'green' },
+          { min_value: 7.01, max_value: 15, label: 'green' },
         ],
       },
       // Q3 – Energy: Physical Energy Scale
       {
         field: 'physical_energy_coordinator',
-        label: 'Physical Energy: On a scale of 1–10, how would you rate your overall physical energy level today?',
+        label: 'Physical Energy: On a scale of 1-10, how would you rate your overall physical energy level today?',
         type: 'scale',
         target: 'coordinator',
         min: 1,
@@ -80,7 +80,7 @@ const CHECKIN_DOMAINS = [
         type: 'number',
         target: 'coordinator',
         min: 0,
-        max: 10,
+        max: 5,
         unit: 'liters',
         weight: 0.05,
         threshold: [
@@ -92,7 +92,7 @@ const CHECKIN_DOMAINS = [
       // Q5 – Quality: Whole vs Processed Foods
       {
         field: 'nutrition_whole_vs_processed_foods_coordinator',
-        label: 'Whole vs Processed Foods: Did your meals today consist mostly of whole foods or processed/packaged foods?',
+        label: 'Whole vs Processed Foods: Did your meals today consist mostly of whole foods?',
         type: 'dropdown',
         options: ['yes', 'no'],
         target: 'coordinator',
@@ -120,7 +120,7 @@ const CHECKIN_DOMAINS = [
       // Q7 – Bandwidth: Focus & Mental Bandwidth
       {
         field: 'mental_focus_bandwidth_coordinator',
-        label: 'Focus & Bandwidth: On a scale of 1–10, how would you rate your current ability to focus on complex tasks?',
+        label: 'Focus & Bandwidth: On a scale of 1-10, how would you rate your current ability to focus on complex tasks?',
         type: 'scale',
         target: 'coordinator',
         min: 1,
@@ -156,7 +156,7 @@ const CHECKIN_DOMAINS = [
       // Q10 – State: Overall Mood/State (Emotional)
       {
         field: 'emotional_overall_mood_state_coordinator',
-        label: 'Overall Mood/State: On a scale of 1–10, how would you rate your overall mood today?',
+        label: 'Overall Mood/State: On a scale of 1-10, how would you rate your overall mood today?',
         type: 'scale',
         target: 'coordinator',
         min: 1,
@@ -212,7 +212,7 @@ const CHECKIN_DOMAINS = [
       // Q23 – Drive: Physical Drive / Vitality
       {
         field: 'vitality_physical_drive_coordinator',
-        label: 'Physical Drive/Vitality: On a scale of 1–10, how would you rate your baseline physical drive and vitality lately?',
+        label: 'Physical Drive/Vitality: On a scale of 1-10, how would you rate your baseline physical drive and vitality lately?',
         type: 'scale',
         target: 'coordinator',
         min: 1,
@@ -256,7 +256,7 @@ const CHECKIN_DOMAINS = [
       // Q17 – Anxiety: Financial Stress / Anxiety
       {
         field: 'financial_stress_anxiety_coordinator',
-        label: 'Financial Stress/Anxiety: On a scale of 1–10, how much stress does thinking about your finances cause you?',
+        label: 'Financial Stress/Anxiety: On a scale of 1-10, how much stress does thinking about your finances cause you?',
         type: 'scale',
         target: 'coordinator',
         min: 1,
@@ -296,13 +296,13 @@ const CHECKIN_DOMAINS = [
         type: 'number',
         target: 'coordinator',
         min: 0,
-        max: 24,
+        max: 15,
         unit: 'hours',
         weight: 0.04,
         threshold: [
           { min_value: 0, max_value: 1.99, label: 'green' },
           { min_value: 2, max_value: 4, label: 'yellow' },
-          { min_value: 4.01, max_value: 24, label: 'red' },
+          { min_value: 4.01, max_value: 15, label: 'red' },
         ],
         invertedScore: true,
       },
@@ -373,7 +373,7 @@ const CHECKIN_DOMAINS = [
       // Q15 – Alignment: Role Alignment
       {
         field: 'occupational_role_alignment_coordinator',
-        label: 'Role Alignment: On a scale of 1–10, how aligned do you feel with your current daily responsibilities?',
+        label: 'Role Alignment: On a scale of 1-10, how aligned do you feel with your current daily responsibilities?',
         type: 'scale',
         target: 'coordinator',
         min: 1,

@@ -145,7 +145,7 @@ userSchema.pre('validate', function (next) {
 export type UserType = InferSchemaType<typeof userSchema>;
 
 // Export with proper typing
-interface UserDocument extends Document, UserType {
+export interface UserDocument extends Document, UserType {
   _id: Types.ObjectId;
 }
 
