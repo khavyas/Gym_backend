@@ -7,13 +7,11 @@ const emailValidator = val => /\S+@\S+\.\S+/.test(val);
 const consultantSchema = new mongoose.Schema(
     {
         user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, // link to User
-        // new field for gym association
-        gym: { type: mongoose.Schema.Types.ObjectId, ref: 'GymCenter', required: true },
-        name: { type: String, required: true }, // redundant but helpful for search
-        specialty: { type: String, required: true }, // e.g. Dietician, Yoga Trainer
+        gym: { type: mongoose.Schema.Types.ObjectId, ref: 'GymCenter' },
+        domain: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Domain' }],
+        specialty: { type: String }, // e.g. Dietician, Yoga Trainer
         description: { type: String },
-        gender: { type: String, enum: ["male", "female", "other"] }, // ABDM/FHIR adds
-        dateOfBirth: { type: Date }, // optional
+        meetingLink: { type: String },
 
         yearsOfExperience: { type: Number, default: 0, min: 0, max: 50 },
 
@@ -63,17 +61,6 @@ const consultantSchema = new mongoose.Schema(
         },
 
         contact: {
-            phone: {
-                type: String,
-                validate: [phoneValidator, 'Invalid Indian phone number'],
-                required: true
-            },
-            email: {
-                type: String,
-                lowercase: true,
-                validate: [emailValidator, 'Invalid email address'],
-                required: true
-            },
             website: { type: String },
             location: {
                 street: String,
@@ -82,9 +69,6 @@ const consultantSchema = new mongoose.Schema(
                 pincode: String
             },
         },
-
-        consent: { type: Boolean, required: true, default: false }, // Privacy consent (checked at registration),
-        privacyNoticeAccepted: { type: Boolean, default: false },
 
         rating: { type: Number, default: 0, min: 0, max: 5 },
         reviewsCount: { type: Number, default: 0, min: 0 },

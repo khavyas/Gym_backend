@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import CheckInQuestion from '../models/CheckInQuestion.model';
 import CheckInResponse from '../models/CheckInResponse.model';
-import DomainHealthScore from '../models/DomainHealthScores';
+import DomainHealthScore from '../models/DomainHealthScores.model';
 import { AuthRequest } from '../types/request-response.dto';
 import User from '../models/User.model';
 import { GetCheckInQuestionQueryDto, SubmitCheckInResponseDto } from '../types/checkIn.dto';

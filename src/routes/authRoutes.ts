@@ -1,8 +1,8 @@
 import express from "express";
-import { registerUser, loginUser, changePassword, registerAdmin, registerCoordinator, verifyOtpAndRegister, getMe, getUsers, updateUser } from "../controllers/authController";
+import { registerUser, registerConsultant, loginUser, changePassword, registerAdmin, registerCoordinator, verifyOtpAndRegister, getMe, getUsers, updateUser } from "../controllers/authController";
 import sendEmail from '../utils/sendEmail';
 import { roleCheck, protect } from "../middleware/authMiddleware";
-import { registerUserDto, registerAdminCoordinatorDto, loginUserDto, getUsersQueryDto, updateUserDto } from "../types/user.dto";
+import { registerUserDto, registerConsultantDto, registerAdminCoordinatorDto, loginUserDto, getUsersQueryDto, updateUserDto } from "../types/user.dto";
 import { validateRequest } from "../middleware/zodValidation";
 
 const router = express.Router();
@@ -203,8 +203,8 @@ router.post(
  * /api/auth/register:
  *   post:
  *     tags: [Authentication]
- *     summary: Register a new user with Indian standards/ABDM compliance
- *     description: Register a new user account. Either email or phone is required. Password is required unless using OAuth. Consent and privacy notice acceptance are mandatory.
+ *     summary: Register a new user
+ *     description: Register a new user account. Either email or phone is required. Password is optional. Consent and privacy notice acceptance are mandatory.
  *     requestBody:
  *       required: true
  *       content:
@@ -223,10 +223,9 @@ router.post(
  *                 maxLength: 100
  *                 example: "John Doe"
  *               gender:
- *                 type: enum
+ *                 type: string
  *                 enum: [male, female, other]
  *                 description: User's gender (optional)
- *                 default: "other"
  *               age:
  *                 type: integer
  *                 description: User's age
@@ -244,16 +243,10 @@ router.post(
  *                 example: "john.doe@example.com"
  *               password:
  *                 type: string
- *                 description: User's password (required unless using OAuth)
+ *                 description: User's password (optional)
  *                 minLength: 6
  *                 maxLength: 100
  *                 example: "securePassword123"
- *               role:
- *                 type: string
- *                 enum: [user, consultant]
- *                 default: user
- *                 description: User's role in the system
- *                 example: "user"
  *               consent:
  *                 type: boolean
  *                 description: Consent required as per Indian standards/ABDM (must be true)
@@ -274,6 +267,10 @@ router.post(
  *                 type: string
  *                 description: OAuth provider name (if using OAuth login)
  *                 example: "google"
+ *               otp:
+ *                 type: string
+ *                 description: OTP value if included in the registration payload (optional)
+ *                 example: "123456"
  *               joiningDate:
  *                 type: string
  *                 format: date-time
@@ -291,7 +288,7 @@ router.post(
  *                 example: "Relocation"
  *               subscriptionType:
  *                 type: string
- *                 enum: [basic, premium, hiwox]
+ *                 enum: [basic, super, premium]
  *                 description: User's subscription type (optional)
  *                 example: "basic"
  *               isHiwoxMember:
@@ -305,7 +302,7 @@ router.post(
  *                 example: "2025-01-01T00:00:00.000Z"
  *               dateOfBirth:
  *                 type: string
- *                 format: date
+ *                 format: date-time
  *                 description: User's date of birth (optional)
  *                 example: "1993-01-01T00:00:00.000Z"
  *               address:
@@ -361,6 +358,170 @@ router.post(
  *         description: Server error
  */
 router.post('/register', validateRequest(registerUserDto), registerUser);
+
+/**
+ * @swagger
+ * /api/auth/register/consultant:
+ *   post:
+ *     tags: [Authentication]
+ *     summary: Register a new consultant
+ *     description: Register a new consultant account. Either email or phone is required. Password is optional. If domains are provided, each value must match an existing `Domain.domainId`.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - consent
+ *               - privacyNoticeAccepted
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Consultant's full name
+ *                 minLength: 1
+ *                 maxLength: 100
+ *                 example: "Dr. Priya Sharma"
+ *               gender:
+ *                 type: string
+ *                 enum: [male, female, other]
+ *                 description: Consultant's gender (optional)
+ *               age:
+ *                 type: integer
+ *                 description: Consultant's age (optional)
+ *                 minimum: 1
+ *                 maximum: 150
+ *                 example: 34
+ *               weight:
+ *                 type: number
+ *                 description: Consultant's weight (optional)
+ *                 example: 68
+ *               phone:
+ *                 type: string
+ *                 description: Consultant's phone number (required if email not provided)
+ *                 example: "9876543210"
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: Consultant's email address (required if phone not provided)
+ *                 example: "priya.sharma@example.com"
+ *               password:
+ *                 type: string
+ *                 description: Consultant's password (optional)
+ *                 minLength: 6
+ *                 maxLength: 100
+ *                 example: "securePassword123"
+ *               consent:
+ *                 type: boolean
+ *                 description: Consent required as per Indian standards/ABDM (must be true)
+ *                 example: true
+ *               privacyNoticeAccepted:
+ *                 type: boolean
+ *                 description: Privacy notice acceptance (must be true)
+ *                 example: true
+ *               aadharNumber:
+ *                 type: string
+ *                 description: Aadhar number (optional)
+ *                 example: "123456789012"
+ *               abhaId:
+ *                 type: string
+ *                 description: ABHA ID (optional)
+ *                 example: "12-3456-7890-1234"
+ *               gym:
+ *                 type: string
+ *                 description: GymCenter document id (optional)
+ *                 example: "67f3c6f7a1b2c3d4e5f60789"
+ *               domain:
+ *                 type: array
+ *                 description: Domain identifiers to resolve against `Domain.domainId` (optional)
+ *                 items:
+ *                   type: string
+ *                 example: ["sleep", "tech"]
+ *               specialty:
+ *                 type: string
+ *                 description: Consultant specialty (optional)
+ *                 example: "Dietician"
+ *               description:
+ *                 type: string
+ *                 description: Consultant bio/description (optional)
+ *                 example: "Certified nutrition consultant with 8 years of experience."
+ *               meetingLink:
+ *                 type: string
+ *                 description: Meeting link for consultant sessions (optional)
+ *                 example: "https://meet.example.com/priya"
+ *               yearsOfExperience:
+ *                 type: integer
+ *                 description: Years of experience (optional)
+ *                 minimum: 0
+ *                 maximum: 50
+ *                 example: 8
+ *               certifications:
+ *                 type: array
+ *                 description: Consultant certifications (optional)
+ *                 items:
+ *                   type: string
+ *                 example: ["ACE Certified", "Precision Nutrition"]
+ *               modeOfTraining:
+ *                 type: string
+ *                 enum: [online, offline, hybrid]
+ *                 description: Training mode (optional)
+ *                 example: "online"
+ *               location:
+ *                 type: string
+ *                 description: Consultant location/city (optional)
+ *                 example: "Bengaluru"
+ *               website:
+ *                 type: string
+ *                 format: uri
+ *                 description: Consultant website (optional)
+ *                 example: "https://priyasharma.example.com"
+ *               isHiwoxMember:
+ *                 type: boolean
+ *                 description: Whether the consultant is a Hiwox member (optional)
+ *                 example: false
+ *     responses:
+ *       201:
+ *         description: Consultant successfully registered
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 userId:
+ *                   type: string
+ *                 name:
+ *                   type: string
+ *                 email:
+ *                   type: string
+ *                 role:
+ *                   type: string
+ *                 token:
+ *                   type: string
+ *                 consultantId:
+ *                   type: string
+ *                 gymId:
+ *                   type: string
+ *                   nullable: true
+ *       400:
+ *         description: Invalid input data, one or more domainIds, or validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Validation failed"
+ *                 errors:
+ *                   type: object
+ *       500:
+ *         description: Server error
+ */
+router.post('/register/consultant', validateRequest(registerConsultantDto), registerConsultant);
 
 /**
  * @swagger

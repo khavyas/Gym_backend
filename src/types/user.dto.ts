@@ -3,12 +3,8 @@ import { z } from 'zod';
 /**
  * User Registration DTO
  * Used when creating a new user account
- * Includes Indian standards/ABDM compliance fields
- * Consultant-specific fields are optional and can be filled later in profile
+ * Includes only the fields used by standard user registration
  */
-
-const emptyToUndefined = (schema) =>
-    z.preprocess(v => v === "" ? undefined : v, schema);
 
 export const registerUserDto = z.object({
     name: z.string().min(1, 'Name is required').max(100, 'Name is too long'),
@@ -34,10 +30,6 @@ export const registerUserDto = z.object({
         pincode: z.string().optional(),
     }).optional(),
     otp: z.string().optional(),
-    role: z
-        .enum(['user', 'consultant'])
-        .default('user')
-        .optional(),
     consent: z
         .boolean()
         .refine((val) => val === true, {
@@ -51,16 +43,6 @@ export const registerUserDto = z.object({
     aadharNumber: z.string().optional(),
     abhaId: z.string().optional(),
     oauthProvider: z.string().optional(),
-
-    // Consultant-specific fields - ALL OPTIONAL
-    gym: z.string().optional(),
-    specialty: z.string().optional(),
-    description: z.string().optional(),
-    yearsOfExperience: z.number().int().min(0).max(50).optional(),
-    certifications: z.array(z.string()).optional(),
-    modeOfTraining: z.enum(['online', 'offline', 'hybrid']).optional(),
-    location: z.string().optional(),
-    website: z.url('Invalid website URL').optional(),
     joiningDate: z.iso.datetime().optional(),
     leavingDate: z.iso.datetime().optional(),
     reasonOfLeaving: z.enum([
@@ -76,13 +58,65 @@ export const registerUserDto = z.object({
     subscriptionType: z.enum(["basic", "super", "premium"]).optional(),
     isHiwoxMember: z.boolean().optional(),
     subscriptionRenewalDate: z.iso.datetime().optional(),
-
 }).strict()
     .refine(
         (data) => data.email || data.phone,
         {
             message: 'Either email or phone is required',
-            path: ['email'], // Error will be attached to email field
+            path: ['email'],
+        }
+    );
+
+/**
+ * Consultant Registration DTO
+ * Used when creating a consultant account
+ * Includes only the fields used by consultant registration
+ */
+export const registerConsultantDto = z.object({
+    name: z.string().min(1, 'Name is required').max(100, 'Name is too long'),
+    age: z.number().int().min(1).max(150).optional(),
+    gender: z.enum(['male', 'female', 'other']).optional(),
+    weight: z.number().positive('Weight must be a positive number').optional(),
+    phone: z.string().trim().optional(),
+    email: z
+        .email('Invalid email format')
+        .toLowerCase()
+        .trim()
+        .optional(),
+    password: z
+        .string()
+        .min(6, 'Password must be at least 6 characters')
+        .max(100, 'Password is too long')
+        .optional(),
+    consent: z
+        .boolean()
+        .refine((val) => val === true, {
+            message: 'Consent is required as per Indian standards/ABDM.'
+        }),
+    privacyNoticeAccepted: z
+        .boolean()
+        .refine((val) => val === true, {
+            message: 'Privacy notice must be accepted.'
+        }),
+    aadharNumber: z.string().optional(),
+    abhaId: z.string().optional(),
+    gym: z.string().optional(),
+    domain: z.array(z.string()).optional(),
+    specialty: z.string().optional(),
+    description: z.string().optional(),
+    meetingLink: z.string().optional(),
+    yearsOfExperience: z.number().int().min(0).max(50).optional(),
+    certifications: z.array(z.string()).optional(),
+    modeOfTraining: z.enum(['online', 'offline', 'hybrid']).optional(),
+    location: z.string().optional(),
+    website: z.url('Invalid website URL').optional(),
+    isHiwoxMember: z.boolean().optional(),
+}).strict()
+    .refine(
+        (data) => data.email || data.phone,
+        {
+            message: 'Either email or phone is required',
+            path: ['email'],
         }
     );
 
@@ -285,6 +319,7 @@ export const getUsersQueryDto = z.object({
 
 // Type exports for TypeScript usage
 export type RegisterUserDto = z.infer<typeof registerUserDto>;
+export type RegisterConsultantDto = z.infer<typeof registerConsultantDto>;
 export type VerifyOtpAndRegisterDto = z.infer<typeof verifyOtpAndRegisterDto>;
 export type RegisterAdminCoordinatorDto = z.infer<typeof registerAdminCoordinatorDto>;
 export type LoginUserDto = z.infer<typeof loginUserDto>;
