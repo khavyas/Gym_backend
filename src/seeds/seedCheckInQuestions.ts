@@ -13,7 +13,7 @@ const CHECKIN_DOMAINS = [
     label: 'Physical',
     icon: '🏃',
     color: '#FF6B6B',
-    gradientColors: ['#FF6B6B', '#FF8E53'] as [string, string],
+    gradientColors: ['#B91C1C', '#C2410C'] as [string, string],
     questions: [
       // Q1 – Movement: Daily Steps
       {
@@ -29,22 +29,6 @@ const CHECKIN_DOMAINS = [
           { min_value: 0, max_value: 3999, label: 'red' },
           { min_value: 4000, max_value: 7500, label: 'yellow' },
           { min_value: 7501, max_value: 15000, label: 'green' },
-        ],
-      },
-      // Q2 – Recovery: Restful Sleep Hours
-      {
-        field: 'physical_restful_sleep_hours_coordinator',
-        label: 'Restful Sleep (Hours): How many hours of restful sleep did you get last night?',
-        type: 'number',
-        target: 'coordinator',
-        min: 0,
-        max: 15,
-        unit: 'hours',
-        weight: 0.06,
-        threshold: [
-          { min_value: 0, max_value: 5.49, label: 'red' },
-          { min_value: 5.5, max_value: 7, label: 'yellow' },
-          { min_value: 7.01, max_value: 15, label: 'green' },
         ],
       },
       // Q3 – Energy: Physical Energy Scale
@@ -71,7 +55,7 @@ const CHECKIN_DOMAINS = [
     label: 'Nutrition',
     icon: '🥗',
     color: '#4ADE80',
-    gradientColors: ['#4ADE80', '#22D3EE'] as [string, string],
+    gradientColors: ['#166534', '#0F766E'] as [string, string],
     questions: [
       // Q4 – Hydration: Water Intake
       {
@@ -115,7 +99,7 @@ const CHECKIN_DOMAINS = [
     label: 'Mental',
     icon: '🧠',
     color: '#A78BFA',
-    gradientColors: ['#A78BFA', '#EC4899'] as [string, string],
+    gradientColors: ['#6D28D9', '#BE185D'] as [string, string],
     questions: [
       // Q7 – Bandwidth: Focus & Mental Bandwidth
       {
@@ -196,10 +180,23 @@ const CHECKIN_DOMAINS = [
     label: 'Sleep',
     icon: '🌙',
     color: '#38BDF8',
-    gradientColors: ['#1E3A5F', '#38BDF8'] as [string, string],
+    gradientColors: ['#172554', '#0369A1'] as [string, string],
     questions: [
-      // Sleep domain has no standalone coordinator questions in the 24-question demo set.
-      // Sleep is captured via Q2 (physical_restful_sleep_hours_coordinator) in Physical domain.
+      {
+        field: 'physical_restful_sleep_hours_coordinator',
+        label: 'Restful Sleep (Hours): How many hours of restful sleep did you get last night?',
+        type: 'number',
+        target: 'coordinator',
+        min: 0,
+        max: 15,
+        unit: 'hours',
+        weight: 0.06,
+        threshold: [
+          { min_value: 0, max_value: 5.49, label: 'red' },
+          { min_value: 5.5, max_value: 7, label: 'yellow' },
+          { min_value: 7.01, max_value: 15, label: 'green' },
+        ],
+      }
     ],
   },
   {
@@ -207,7 +204,7 @@ const CHECKIN_DOMAINS = [
     label: 'Reproductive',
     icon: '🌸',
     color: '#F472B6',
-    gradientColors: ['#F472B6', '#FB7185'] as [string, string],
+    gradientColors: ['#9D174D', '#BE123C'] as [string, string],
     questions: [
       // Q23 – Drive: Physical Drive / Vitality
       {
@@ -242,7 +239,7 @@ const CHECKIN_DOMAINS = [
     label: 'Financial',
     icon: '💰',
     color: '#FBBF24',
-    gradientColors: ['#FBBF24', '#F59E0B'] as [string, string],
+    gradientColors: ['#A16207', '#92400E'] as [string, string],
     questions: [
       // Q16 – Control: Spending Comfort
       {
@@ -287,7 +284,7 @@ const CHECKIN_DOMAINS = [
     label: 'Tech & Digital',
     icon: '📱',
     color: '#34D399',
-    gradientColors: ['#34D399', '#059669'] as [string, string],
+    gradientColors: ['#047857', '#065F46'] as [string, string],
     questions: [
       // Q21 – Saturation: Non-Work Screen Time
       {
@@ -323,7 +320,7 @@ const CHECKIN_DOMAINS = [
     label: 'Social',
     icon: '🤝',
     color: '#60A5FA',
-    gradientColors: ['#60A5FA', '#3B82F6'] as [string, string],
+    gradientColors: ['#1D4ED8', '#1E40AF'] as [string, string],
     questions: [
       // Q19 – Connection: Meaningful Connection
       {
@@ -350,7 +347,7 @@ const CHECKIN_DOMAINS = [
     label: 'Work',
     icon: '💼',
     color: '#FB923C',
-    gradientColors: ['#FB923C', '#EF4444'] as [string, string],
+    gradientColors: ['#C2410C', '#B91C1C'] as [string, string],
     questions: [
       // Q13 – Progress: Sense of Progress
       {
@@ -397,21 +394,23 @@ export default async function seedCheckInQuestions() {
     // await mongoose.connect(MONGO_URI);
     console.log('✅ Connected to MongoDB');
 
-    // Clear existing domains + questions
+    // Clear existing questions only. Domains are expected to be seeded already.
     await CheckInQuestion.deleteMany({});
     console.log('🗑️  Cleared existing CheckInQuestions');
-    await Domain.deleteMany({});
-    console.log('🗑️  Cleared existing Domains');
 
-    const domainDocs = await Domain.insertMany(
-      CHECKIN_DOMAINS.map((domain) => ({
-        domainId: domain.id,
-        domainLabel: domain.label,
-        domainIcon: domain.icon,
-        domainColor: domain.color,
-        domainGradientColors: domain.gradientColors,
-      }))
-    );
+    const domainDocs = await Domain.find({
+      domainId: { $in: CHECKIN_DOMAINS.map((domain) => domain.id) },
+    }).select('_id domainId');
+
+    const missingDomainIds = CHECKIN_DOMAINS
+      .map((domain) => domain.id)
+      .filter((domainId) => !domainDocs.some((domain) => domain.domainId === domainId));
+
+    if (missingDomainIds.length > 0) {
+      throw new Error(
+        `Missing pre-seeded domains: ${missingDomainIds.join(', ')}`
+      );
+    }
 
     const domainById = new Map(domainDocs.map((d) => [d.domainId, d]));
 

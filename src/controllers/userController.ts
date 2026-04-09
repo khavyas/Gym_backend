@@ -11,162 +11,6 @@ const MAX_OTP_ATTEMPTS = 5;
 const OTP_RESEND_COOLDOWN_MS = 60000;
 
 // ============================================
-// CONSULTANT REGISTRATION (consultant profile only)
-// ============================================
-export const registerConsultant = async (req: AuthRequest<RegisterConsultantDto>, res) => {
-  console.log("Incoming consultant registration body:", req.body);
-
-  let {
-    name, age, phone, email, password,
-    consent, privacyNoticeAccepted, aadharNumber, abhaId, weight,
-    gym, domain, specialty, description, meetingLink, gender, yearsOfExperience,
-    certifications, modeOfTraining, location, website,
-    isHiwoxMember
-  } = req.body;
-
-  try {
-    let filters = [];
-    if (email) filters.push({ email: email.toLowerCase().trim() });
-    if (phone) filters.push({ phone: phone.trim() });
-    let resolvedDomainIds = [];
-
-    if (filters.length > 0) {
-      const userExists = await User.findOne({ $or: filters });
-      if (userExists) {
-        return res.status(400).json({ message: 'User already exists' });
-      }
-    }
-
-    // If domains are provided, validate them by domainId and collect their _ids
-    if (domain?.length) {
-      const Domain = require('../models/Domain.model').default;
-      const normalizedDomainIds = [...new Set(domain.map((domainId) => domainId.trim()).filter(Boolean))];
-      const domainDocs = await Domain.find({ domainId: { $in: normalizedDomainIds } }).select('_id domainId');
-
-      if (domainDocs.length !== normalizedDomainIds.length) {
-        const foundDomainIds = new Set(domainDocs.map((domainDoc) => domainDoc.domainId));
-        const invalidDomainIds = normalizedDomainIds.filter((domainId) => !foundDomainIds.has(domainId));
-
-        return res.status(400).json({
-          message: `Invalid domainId provided during consultant registration: ${invalidDomainIds.join(', ')}`
-        });
-      }
-
-      resolvedDomainIds = domainDocs.map((domainDoc) => domainDoc._id);
-    }
-
-    if (!password) {
-      password = Math.random().toString(36).slice(-8); // Generate a random 8-character password
-      if (isHiwoxMember) {
-        sendEmail({
-          to: email,
-          subject: "Welcome to Hiwox - Your Account Details",
-          html: `<p>Dear ${name},</p>
-                 <p>Welcome to Hiwox! Your account has been created successfully.</p>
-                 <p><strong>Your temporary password is:</strong> ${password}</p>
-                 <p>Please log in and change your password immediately for security reasons.</p>
-                 <p>Best regards,<br/>Hiwox Team</p>`
-        });
-      }
-    }
-
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    const role = 'consultant';
-
-    // CREATE USER
-    const user = await User.create({
-      name,
-      age,
-      gender,
-      weight,
-      phone: phone,
-      email: email,
-      password: hashedPassword,
-      role,
-      consent,
-      privacyNoticeAccepted,
-      aadharNumber,
-      abhaId
-    });
-
-    try {
-      if (gym) {
-        const GymCenter = require('../models/Gym.model').default;
-        const gymExists = await GymCenter.findById(gym);
-        if (!gymExists) {
-          console.error("⚠️ Invalid gym ID provided during consultant registration");
-        }
-      }
-
-      const Consultant = require('../models/Consultant.model').default;
-      const consultantContact: any = {};
-
-      if (website) {
-        consultantContact.website = website;
-      }
-
-      if (location) {
-        consultantContact.location = { city: location };
-      }
-
-      const consultantData = {
-        user: user._id,
-        gym: gym || undefined,
-        domain: resolvedDomainIds,
-        specialty: specialty || 'General Consultant',
-        description: description || '',
-        meetingLink: meetingLink || '',
-        yearsOfExperience: yearsOfExperience || 0,
-        certifications: certifications || [],
-        modeOfTraining: modeOfTraining || 'online',
-        contact: consultantContact,
-        createdBy: user._id,
-        lastModifiedBy: user._id
-      };
-
-      const consultantProfile = await Consultant.create(consultantData);
-
-      console.log("✅ Consultant profile created automatically:", consultantProfile._id);
-
-      return res.status(201).json({
-        userId: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        age: user.age,
-        weight: user.weight,
-        gender: user.gender,
-        token: generateToken(user._id),
-        consultantId: consultantProfile._id,
-        gymId: gym || null
-      });
-
-    } catch (consultantError) {
-      console.error("⚠️ Failed to create consultant profile:", consultantError.message);
-      console.error("Full error:", consultantError);
-
-      return res.status(201).json({
-        userId: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        age: user.age,
-        weight: user.weight,
-        gender: user.gender,
-        token: generateToken(user._id),
-        warning: 'User created but consultant profile needs to be completed',
-        error: consultantError.message
-      });
-    }
-  } catch (error) {
-    console.error("Registration error:", error);
-    res.status(500).json({ message: error.message });
-  }
-};
-
-// ============================================
 // NEW USER REGISTRATION (with automatic Profile creation)
 // ============================================
 export const registerUser = async (req: AuthRequest<RegisterUserDto>, res) => {
@@ -680,7 +524,6 @@ export const getUsers = async (req: AuthRequest, res) => {
       name,
       email,
       phone,
-      role,
       gender,
       emailVerified,
       phoneVerified,
@@ -697,7 +540,6 @@ export const getUsers = async (req: AuthRequest, res) => {
     if (name) filter.name = { $regex: name, $options: 'i' };
     if (email) filter.email = email;
     if (phone) filter.phone = phone;
-    if (role) filter.role = role;
     if (gender) filter.gender = gender;
     if (emailVerified !== undefined) filter.emailVerified = emailVerified;
     if (phoneVerified !== undefined) filter.phoneVerified = phoneVerified;

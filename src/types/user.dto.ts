@@ -317,6 +317,52 @@ export const getUsersQueryDto = z.object({
     sortOrder: z.enum(['asc', 'desc']).optional().default('desc'),
 }).strict(); // Disallow unknown query parameters
 
+/**
+ * Get Consultants Query DTO
+ * Used for filtering consultants in the get all consultants endpoint
+ */
+export const getConsultantsQueryDto = z.object({
+    id: z.string().optional(),
+    userId: z.string().optional(),
+    name: z.string().optional(),
+    email: z.email('Invalid email format').toLowerCase().trim().optional(),
+    phone: z.string().trim().optional(),
+    gender: z.enum(['male', 'female', 'other']).optional(),
+    emailVerified: z.string().transform((val) => val === 'true').pipe(z.boolean()).optional(),
+    phoneVerified: z.string().transform((val) => val === 'true').pipe(z.boolean()).optional(),
+    oauthProvider: z.enum(['google', 'facebook', 'apple']).optional(),
+    gym: z.string().optional(),
+    domain: z.string().optional(),
+    specialty: z.string().optional(),
+    modeOfTraining: z.enum(['online', 'offline', 'hybrid']).optional(),
+    isVerified: z.string().transform((val) => val === 'true').pipe(z.boolean()).optional(),
+    verified: z.string().transform((val) => val === 'true').pipe(z.boolean()).optional(),
+    minYearsOfExperience: z.string()
+        .optional()
+        .transform((val) => (val === undefined ? undefined : Number(val)))
+        .pipe(z.number().min(0).max(50).optional()),
+    maxYearsOfExperience: z.string()
+        .optional()
+        .transform((val) => (val === undefined ? undefined : Number(val)))
+        .pipe(z.number().min(0).max(50).optional()),
+    page: z.string().optional().default('1').transform(Number).pipe(z.number().int().min(1)),
+    limit: z.string().optional().default('10').transform(Number).pipe(z.number().int().min(1).max(100)),
+    sortBy: z.string().optional().default('createdAt'),
+    sortOrder: z.enum(['asc', 'desc']).optional().default('desc'),
+}).strict().refine(
+    (data) => {
+        if (data.minYearsOfExperience === undefined || data.maxYearsOfExperience === undefined) {
+            return true;
+        }
+
+        return data.minYearsOfExperience <= data.maxYearsOfExperience;
+    },
+    {
+        message: 'minYearsOfExperience cannot be greater than maxYearsOfExperience',
+        path: ['minYearsOfExperience'],
+    }
+);
+
 // Type exports for TypeScript usage
 export type RegisterUserDto = z.infer<typeof registerUserDto>;
 export type RegisterConsultantDto = z.infer<typeof registerConsultantDto>;
@@ -329,3 +375,4 @@ export type ResetPasswordDto = z.infer<typeof resetPasswordDto>;
 export type VerifyOtpDto = z.infer<typeof verifyOtpDto>;
 export type ChangePasswordDto = z.infer<typeof changePasswordDto>;
 export type GetUsersQueryDto = z.infer<typeof getUsersQueryDto>;
+export type GetConsultantsQueryDto = z.infer<typeof getConsultantsQueryDto>;

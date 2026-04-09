@@ -3,14 +3,11 @@ import { UserDocument } from './User.model';
 import { IDomain } from './Domain.model';
 import { ICheckInResponse } from './CheckInResponse.model';
 
-interface IMetricMean {
+interface IDomainQuestionMetric {
   questionId: Types.ObjectId;
-  averageValue: number;
-}
-
-interface IWeightedMetric {
-  questionId: Types.ObjectId;
-  weightedValue: number;
+  averageValue?: number | null;
+  normalizedAverageValue: number;
+  normalizedAverageWeightedValue: number;
   weight: number;
 }
 
@@ -21,8 +18,7 @@ export interface IDomainHealthScore extends Document {
   windowStart: Date;
   windowEnd: Date;
   dataPointCount: number;
-  metricMeans: IMetricMean[];
-  weightedMetrics: IWeightedMetric[];
+  metrics: IDomainQuestionMetric[];
   dhi: number;
   status: 'green' | 'yellow' | 'red';
   sourceResponseIds: Array<Types.ObjectId | ICheckInResponse>;
@@ -64,7 +60,7 @@ const DomainHealthScoresSchema = new Schema<IDomainHealthScore>(
       required: true,
       default: 7,
     },
-    metricMeans: {
+    metrics: {
       type: [
         {
           questionId: {
@@ -74,21 +70,13 @@ const DomainHealthScoresSchema = new Schema<IDomainHealthScore>(
           },
           averageValue: {
             type: Number,
+            default: null,
+          },
+          normalizedAverageValue: {
+            type: Number,
             required: true,
           },
-        },
-      ],
-      default: [],
-    },
-    weightedMetrics: {
-      type: [
-        {
-          questionId: {
-            type: Schema.Types.ObjectId,
-            ref: 'CheckInQuestion',
-            required: true,
-          },
-          weightedValue: {
+          normalizedAverageWeightedValue: {
             type: Number,
             required: true,
           },

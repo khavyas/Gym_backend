@@ -19,6 +19,7 @@ import workoutRoutes from './routes/workoutRoutes';
 import wellnessRoutes from './routes/wellnessRoutes';
 import menstrualCycleRoutes from './routes/menstrualCycleRoutes';
 import checkInRoutes from './routes/checkInRoutes';
+import domainHealthRoutes from './routes/domainHealthRoutes';
 import seedCheckInQuestions from "./seeds/seedCheckInQuestions";
 
 dotenv.config();
@@ -66,6 +67,7 @@ app.use('/api/menstrual-cycle', menstrualCycleRoutes);
 app.use('/api/wellness', wellnessRoutes);
 app.use('/api/checkin', checkInRoutes);
 app.use('/api/menstrual-cycle', menstrualCycleRoutes);
+app.use('/api/dhi', domainHealthRoutes);
 
 // 404 handler
 app.use((req, res) => {

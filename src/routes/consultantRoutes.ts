@@ -1,281 +1,19 @@
 import express from "express";
 import { protect } from "../middleware/authMiddleware";
-import { createConsultant, getConsultants, getConsultantById, updateConsultant, adminOnboardConsultant, getConsultantByUserId } from "../controllers/consultantController";
+import { registerConsultant, getConsultants, updateConsultant } from "../controllers/consultantController";
+import { getConsultantsQueryDto, registerConsultantDto } from "../types/user.dto";
+import { validateRequest } from "../middleware/zodValidation";
 
 const router = express.Router();
 
-/**
- * @swagger
- * components:
- *   schemas:
- *     Consultant:
- *       type: object
- *       required:
- *         - user
- *         - gym
- *         - name
- *         - specialty
- *         - consent
- *       properties:
- *         user:
- *           type: string
- *           description: Reference to User ID
- *         gym:
- *           type: string
- *           description: Reference to Gym ID
- *         name:
- *           type: string
- *           description: Consultant name
- *         specialty:
- *           type: string
- *           description: Consultant specialty (e.g., Dietician, Yoga Trainer)
- *         description:
- *           type: string
- *           description: Description of the consultant
- *         gender:
- *           type: string
- *           enum: [male, female, other]
- *           description: Gender of the consultant
- *         dateOfBirth:
- *           type: string
- *           format: date
- *           description: Date of birth
- *         yearsOfExperience:
- *           type: number
- *           minimum: 0
- *           maximum: 50
- *           description: Years of professional experience
- *         certifications:
- *           type: array
- *           items:
- *             type: string
- *           description: List of certifications
- *         badges:
- *           type: array
- *           items:
- *             type: string
- *           description: Achievement badges
- *         qualification:
- *           type: array
- *           items:
- *             type: object
- *             properties:
- *               degree:
- *                 type: string
- *               board:
- *                 type: string
- *               year:
- *                 type: number
- *               field:
- *                 type: string
- *         modeOfTraining:
- *           type: string
- *           enum: [online, offline, hybrid]
- *           description: Mode of training delivery
- *         pricing:
- *           type: object
- *           properties:
- *             perSession:
- *               type: number
- *             perMonth:
- *               type: number
- *             perWeek:
- *               type: number
- *             perDay:
- *               type: number
- *             currency:
- *               type: string
- *               default: INR
- *             packages:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   title:
- *                     type: string
- *                   duration:
- *                     type: string
- *                   price:
- *                     type: number
- *         availability:
- *           type: object
- *           properties:
- *             status:
- *               type: string
- *               enum: [Available Now, Available Tomorrow, Busy]
- *             nextSlot:
- *               type: string
- *             workingDays:
- *               type: array
- *               items:
- *                 type: string
- *             workingHours:
- *               type: object
- *               properties:
- *                 start:
- *                   type: string
- *                 end:
- *                   type: string
- *         contact:
- *           type: object
- *           required:
- *             - phone
- *             - email
- *           properties:
- *             phone:
- *               type: string
- *               description: Indian 10-digit phone number
- *             email:
- *               type: string
- *               format: email
- *             website:
- *               type: string
- *             location:
- *               type: object
- *               properties:
- *                 street:
- *                   type: string
- *                 city:
- *                   type: string
- *                 state:
- *                   type: string
- *                 pincode:
- *                   type: string
- *         consent:
- *           type: boolean
- *           description: Privacy consent (required as per Indian standards/ABDM)
- *         privacyNoticeAccepted:
- *           type: boolean
- *           description: Privacy notice acceptance
- *         rating:
- *           type: number
- *           minimum: 0
- *           maximum: 5
- *         reviewsCount:
- *           type: number
- *         image:
- *           type: string
- *           description: Profile image URL
- *         isVerified:
- *           type: boolean
- *     AdminOnboardConsultant:
- *       type: object
- *       required:
- *         - email
- *         - phone
- *         - password
- *         - gym
- *         - name
- *         - specialty
- *         - consent
- *         - privacyNoticeAccepted
- *       properties:
- *         email:
- *           type: string
- *           format: email
- *           description: Consultant email for user account
- *         phone:
- *           type: string
- *           description: Consultant phone for user account
- *         password:
- *           type: string
- *           format: password
- *           description: Password for consultant user account
- *         name:
- *           type: string
- *           description: Consultant name
- *         gym:
- *           type: string
- *           description: Reference to Gym ID
- *         specialty:
- *           type: string
- *           description: Consultant specialty
- *         consent:
- *           type: boolean
- *           description: Privacy consent (required)
- *         privacyNoticeAccepted:
- *           type: boolean
- *           description: Privacy notice acceptance (required)
- *         description:
- *           type: string
- *         gender:
- *           type: string
- *           enum: [male, female, other]
- *         contact:
- *           type: object
- *           properties:
- *             phone:
- *               type: string
- *             email:
- *               type: string
- */
 
 /**
  * @swagger
- * /api/consultants/admin-onboard:
+ * /api/consultants/register:
  *   post:
  *     tags: [Consultants]
- *     summary: Admin onboards a consultant (creates user account + profile)
- *     description: Admin creates both a consultant user account and profile in one step
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/AdminOnboardConsultant'
- *           example:
- *             email: consultant@example.com
- *             phone: "9876543210"
- *             password: SecurePass123!
- *             name: Dr. John Doe
- *             gym: 507f1f77bcf86cd799439011
- *             specialty: Dietician
- *             consent: true
- *             privacyNoticeAccepted: true
- *             description: Experienced dietician with 10 years of practice
- *             gender: male
- *             yearsOfExperience: 10
- *             modeOfTraining: hybrid
- *             contact:
- *               phone: "9876543210"
- *               email: consultant@example.com
- *     responses:
- *       201:
- *         description: Consultant onboarded successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 consultant:
- *                   $ref: '#/components/schemas/Consultant'
- *                 user:
- *                   type: object
- *                   properties:
- *                     id:
- *                       type: string
- *                     email:
- *                       type: string
- *       400:
- *         description: Bad request - validation error
- *       401:
- *         description: Unauthorized - authentication required
- *       500:
- *         description: Server error
- */
-router.post('/admin-onboard', protect, adminOnboardConsultant);
-
-/**
- * @swagger
- * /api/consultants:
- *   post:
- *     tags: [Consultants]
- *     summary: Create consultant profile for logged-in user
- *     description: Create a consultant profile for the authenticated user
- *     security:
- *       - bearerAuth: []
+ *     summary: Register a new consultant
+ *     description: Register a new consultant account. Either email or phone is required. Password is optional. If domains are provided, each value must match an existing `Domain.domainId`.
  *     requestBody:
  *       required: true
  *       content:
@@ -283,124 +21,368 @@ router.post('/admin-onboard', protect, adminOnboardConsultant);
  *           schema:
  *             type: object
  *             required:
- *               - gym
  *               - name
- *               - specialty
  *               - consent
  *               - privacyNoticeAccepted
  *             properties:
- *               gym:
- *                 type: string
- *                 description: Reference to Gym ID
  *               name:
  *                 type: string
- *               specialty:
- *                 type: string
- *               description:
- *                 type: string
+ *                 description: Consultant's full name
+ *                 minLength: 1
+ *                 maxLength: 100
+ *                 example: "Dr. Priya Sharma"
  *               gender:
  *                 type: string
  *                 enum: [male, female, other]
- *               yearsOfExperience:
+ *                 description: Consultant's gender (optional)
+ *               age:
+ *                 type: integer
+ *                 description: Consultant's age (optional)
+ *                 minimum: 1
+ *                 maximum: 150
+ *                 example: 34
+ *               weight:
  *                 type: number
- *               certifications:
+ *                 description: Consultant's weight (optional)
+ *                 example: 68
+ *               phone:
+ *                 type: string
+ *                 description: Consultant's phone number (required if email not provided)
+ *                 example: "9876543210"
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: Consultant's email address (required if phone not provided)
+ *                 example: "priya.sharma@example.com"
+ *               password:
+ *                 type: string
+ *                 description: Consultant's password (optional)
+ *                 minLength: 6
+ *                 maxLength: 100
+ *                 example: "securePassword123"
+ *               consent:
+ *                 type: boolean
+ *                 description: Consent required as per Indian standards/ABDM (must be true)
+ *                 example: true
+ *               privacyNoticeAccepted:
+ *                 type: boolean
+ *                 description: Privacy notice acceptance (must be true)
+ *                 example: true
+ *               aadharNumber:
+ *                 type: string
+ *                 description: Aadhar number (optional)
+ *                 example: "123456789012"
+ *               abhaId:
+ *                 type: string
+ *                 description: ABHA ID (optional)
+ *                 example: "12-3456-7890-1234"
+ *               gym:
+ *                 type: string
+ *                 description: GymCenter document id (optional)
+ *                 example: "67f3c6f7a1b2c3d4e5f60789"
+ *               domain:
  *                 type: array
+ *                 description: Domain identifiers to resolve against `Domain.domainId` (optional)
  *                 items:
  *                   type: string
+ *                 example: ["sleep", "tech"]
+ *               specialty:
+ *                 type: string
+ *                 description: Consultant specialty (optional)
+ *                 example: "Dietician"
+ *               description:
+ *                 type: string
+ *                 description: Consultant bio/description (optional)
+ *                 example: "Certified nutrition consultant with 8 years of experience."
+ *               meetingLink:
+ *                 type: string
+ *                 description: Meeting link for consultant sessions (optional)
+ *                 example: "https://meet.example.com/priya"
+ *               yearsOfExperience:
+ *                 type: integer
+ *                 description: Years of experience (optional)
+ *                 minimum: 0
+ *                 maximum: 50
+ *                 example: 8
+ *               certifications:
+ *                 type: array
+ *                 description: Consultant certifications (optional)
+ *                 items:
+ *                   type: string
+ *                 example: ["ACE Certified", "Precision Nutrition"]
  *               modeOfTraining:
  *                 type: string
  *                 enum: [online, offline, hybrid]
- *               consent:
+ *                 description: Training mode (optional)
+ *                 example: "online"
+ *               location:
+ *                 type: string
+ *                 description: Consultant location/city (optional)
+ *                 example: "Bengaluru"
+ *               website:
+ *                 type: string
+ *                 format: uri
+ *                 description: Consultant website (optional)
+ *                 example: "https://priyasharma.example.com"
+ *               isHiwoxMember:
  *                 type: boolean
- *               privacyNoticeAccepted:
- *                 type: boolean
- *               contact:
- *                 type: object
- *                 properties:
- *                   phone:
- *                     type: string
- *                   email:
- *                     type: string
- *           example:
- *             gym: 507f1f77bcf86cd799439011
- *             name: Jane Smith
- *             specialty: Yoga Trainer
- *             description: Certified yoga instructor specializing in Hatha and Vinyasa
- *             gender: female
- *             yearsOfExperience: 5
- *             certifications: ["RYT 200", "RYT 500"]
- *             modeOfTraining: hybrid
- *             consent: true
- *             privacyNoticeAccepted: true
- *             contact:
- *               phone: "9876543210"
- *               email: jane@example.com
+ *                 description: Whether the consultant is a Hiwox member (optional)
+ *                 example: false
  *     responses:
  *       201:
- *         description: Consultant profile created successfully
+ *         description: Consultant successfully registered
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Consultant'
+ *               type: object
+ *               properties:
+ *                 userId:
+ *                   type: string
+ *                 name:
+ *                   type: string
+ *                 email:
+ *                   type: string
+ *                 role:
+ *                   type: string
+ *                 token:
+ *                   type: string
+ *                 consultantId:
+ *                   type: string
+ *                 gymId:
+ *                   type: string
+ *                   nullable: true
  *       400:
- *         description: Bad request - validation error or profile already exists
- *       401:
- *         description: Unauthorized - authentication required
+ *         description: Invalid input data, one or more domainIds, or validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Validation failed"
+ *                 errors:
+ *                   type: object
  *       500:
  *         description: Server error
  */
-router.post("/", protect, createConsultant);
+router.post('/register', validateRequest(registerConsultantDto), registerConsultant);
 
 /**
  * @swagger
  * /api/consultants:
  *   get:
  *     tags: [Consultants]
- *     summary: Get all consultants
- *     description: Retrieve a list of all consultants with their user details
- *     responses:
- *       200:
- *         description: List of consultants retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Consultant'
- *       500:
- *         description: Server error
- */
-router.get("/", getConsultants);
-
-router.get("/user/:userId", protect, getConsultantByUserId);
-
-/**
- * @swagger
- * /api/consultants/{id}:
- *   get:
- *     tags: [Consultants]
- *     summary: Get consultant by ID
- *     description: Retrieve detailed information about a specific consultant
+ *     summary: Get all consultants with optional filtering and pagination
+ *     description: Retrieve consultants with their linked user, gym, and domain data. Only consultants having valid linked profiles are returned.
  *     parameters:
- *       - in: path
+ *       - in: query
  *         name: id
- *         required: true
  *         schema:
  *           type: string
- *         description: Consultant ID
+ *         description: Filter by consultant ID
+ *       - in: query
+ *         name: userId
+ *         schema:
+ *           type: string
+ *         description: Filter by linked user ID
+ *       - in: query
+ *         name: name
+ *         schema:
+ *           type: string
+ *         description: Filter by linked user name (case-insensitive partial match)
+ *       - in: query
+ *         name: email
+ *         schema:
+ *           type: string
+ *         description: Filter by linked user email
+ *       - in: query
+ *         name: phone
+ *         schema:
+ *           type: string
+ *         description: Filter by linked user phone number
+ *       - in: query
+ *         name: gender
+ *         schema:
+ *           type: string
+ *           enum: [male, female, other]
+ *         description: Filter by linked user gender
+ *       - in: query
+ *         name: emailVerified
+ *         schema:
+ *           type: boolean
+ *         description: Filter by linked user email verification status
+ *       - in: query
+ *         name: phoneVerified
+ *         schema:
+ *           type: boolean
+ *         description: Filter by linked user phone verification status
+ *       - in: query
+ *         name: oauthProvider
+ *         schema:
+ *           type: string
+ *           enum: [google, facebook, apple]
+ *         description: Filter by linked user OAuth provider
+ *       - in: query
+ *         name: gym
+ *         schema:
+ *           type: string
+ *         description: Filter by gym ID
+ *       - in: query
+ *         name: domain
+ *         schema:
+ *           type: string
+ *         description: Filter by domain ID
+ *       - in: query
+ *         name: specialty
+ *         schema:
+ *           type: string
+ *         description: Filter by consultant specialty (case-insensitive partial match)
+ *       - in: query
+ *         name: modeOfTraining
+ *         schema:
+ *           type: string
+ *           enum: [online, offline, hybrid]
+ *         description: Filter by mode of training
+ *       - in: query
+ *         name: isVerified
+ *         schema:
+ *           type: boolean
+ *         description: Filter by consultant verification status
+ *       - in: query
+ *         name: verified
+ *         schema:
+ *           type: boolean
+ *         description: Backward-compatible alias for isVerified
+ *       - in: query
+ *         name: minYearsOfExperience
+ *         schema:
+ *           type: integer
+ *           minimum: 0
+ *           maximum: 50
+ *         description: Filter consultants with yearsOfExperience greater than or equal to this value
+ *       - in: query
+ *         name: maxYearsOfExperience
+ *         schema:
+ *           type: integer
+ *           minimum: 0
+ *           maximum: 50
+ *         description: Filter consultants with yearsOfExperience less than or equal to this value
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *           minimum: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *           minimum: 1
+ *           maximum: 100
+ *         description: Number of items per page
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           default: createdAt
+ *         description: Field to sort by
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: desc
+ *         description: Sort order (ascending or descending)
  *     responses:
  *       200:
- *         description: Consultant details retrieved successfully
+ *         description: Consultants retrieved successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Consultant'
- *       404:
- *         description: Consultant not found
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                       specialty:
+ *                         type: string
+ *                       description:
+ *                         type: string
+ *                       meetingLink:
+ *                         type: string
+ *                       yearsOfExperience:
+ *                         type: integer
+ *                       certifications:
+ *                         type: array
+ *                         items:
+ *                           type: string
+ *                       modeOfTraining:
+ *                         type: string
+ *                         enum: [online, offline, hybrid]
+ *                       isVerified:
+ *                         type: boolean
+ *                       rating:
+ *                         type: number
+ *                       reviewsCount:
+ *                         type: integer
+ *                       user:
+ *                         type: object
+ *                         description: Populated linked user document without password and OTP fields
+ *                       gym:
+ *                         type: object
+ *                         nullable: true
+ *                         description: Populated gym document
+ *                       domain:
+ *                         type: array
+ *                         items:
+ *                           type: object
+ *                         description: Populated domain documents
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *                       updatedAt:
+ *                         type: string
+ *                         format: date-time
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: integer
+ *                       description: Total number of consultants matching the filter
+ *                     page:
+ *                       type: integer
+ *                       description: Current page number
+ *                     limit:
+ *                       type: integer
+ *                       description: Number of items per page
+ *                     totalPages:
+ *                       type: integer
+ *                       description: Total number of pages
+ *                     hasNextPage:
+ *                       type: boolean
+ *                       description: Whether there is a next page
+ *                     hasPrevPage:
+ *                       type: boolean
+ *                       description: Whether there is a previous page
+ *       400:
+ *         description: Invalid query parameters
  *       500:
  *         description: Server error
  */
-router.get("/:id", getConsultantById);
+router.get("/", validateRequest(getConsultantsQueryDto, 'query'), getConsultants);
 
 /**
  * @swagger
@@ -498,7 +480,6 @@ router.get("/:id", getConsultantById);
  *         description: Server error
  */
 router.put("/", protect, updateConsultant);
-
 
 
 export default router;

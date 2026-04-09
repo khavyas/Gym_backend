@@ -18,8 +18,10 @@ type QuestionMeta = {
 type ScoreAccumulator = {
   questionObjectId: Types.ObjectId;
   domainId: string;
-  total: number;
-  count: number;
+  normalizedTotal: number;
+  normalizedCount: number;
+  rawTotal: number;
+  rawCount: number;
   weight: number;
 };
 
@@ -386,8 +388,8 @@ export const calculateDomainHealthScores = async (
     questions.map((question) => [String(question._id), question])
   );
 
-  // Aggregate normalized scores per question across the 7-response window.
-  // This gives us the numerator and count needed for each question mean.
+  // Aggregate both normalized and raw answer values per question across the
+  // 7-response window so we can store both averages on the score snapshot.
   const scoreByQuestionId = new Map<string, ScoreAccumulator>();
 
   latestResponses.forEach((response) => {
@@ -402,18 +404,26 @@ export const calculateDomainHealthScores = async (
       const questionId = String(answer.questionId);
       const existing = scoreByQuestionId.get(questionId);
       const score = clampScore(answer.normalizedScore);
+      const numericAnswerValue =
+        typeof answer.value === 'number' ? answer.value : null;
 
       if (existing) {
-        existing.total += score;
-        existing.count += 1;
+        existing.normalizedTotal += score;
+        existing.normalizedCount += 1;
+        if (numericAnswerValue !== null) {
+          existing.rawTotal += numericAnswerValue;
+          existing.rawCount += 1;
+        }
         return;
       }
 
       scoreByQuestionId.set(questionId, {
         questionObjectId: answer.questionId,
         domainId: String(question.domain),
-        total: score,
-        count: 1,
+        normalizedTotal: score,
+        normalizedCount: 1,
+        rawTotal: numericAnswerValue ?? 0,
+        rawCount: numericAnswerValue !== null ? 1 : 0,
         weight: question.weight ?? 0,
       });
     });
@@ -429,19 +439,29 @@ export const calculateDomainHealthScores = async (
 
   const savedScores = await Promise.all(
     domains.map(async (domain) => {
-      // Step 1: mean normalized score for each question in this domain.
-      const metricMeans = Array.from(scoreByQuestionId.values())
+      // Step 1: calculate both raw and normalized averages for each question.
+      const metrics = Array.from(scoreByQuestionId.values())
         .filter((metric) => metric.domainId === String(domain._id))
         .map((metric) => ({
           questionId: metric.questionObjectId,
-          averageValue: Number((metric.total / metric.count).toFixed(2)),
+          averageValue:
+            metric.rawCount > 0
+              ? Number((metric.rawTotal / metric.rawCount).toFixed(2))
+              : null,
+          normalizedAverageValue: Number(
+            (metric.normalizedTotal / metric.normalizedCount).toFixed(2)
+          ),
           weight: metric.weight,
         }));
 
-      // Step 2: apply the seeded question weight to each question mean.
-      const weightedMetrics = metricMeans.map((metric) => ({
+      // Step 2: apply the seeded question weight to each normalized mean.
+      const weightedMetrics = metrics.map((metric) => ({
         questionId: metric.questionId,
-        weightedValue: Number((metric.averageValue * metric.weight).toFixed(2)),
+        averageValue: metric.averageValue,
+        normalizedAverageValue: metric.normalizedAverageValue,
+        normalizedAverageWeightedValue: Number(
+          (metric.normalizedAverageValue * metric.weight).toFixed(2)
+        ),
         weight: metric.weight,
       }));
 
@@ -452,7 +472,7 @@ export const calculateDomainHealthScores = async (
         0
       );
       const weightedSum = weightedMetrics.reduce(
-        (sum, metric) => sum + metric.weightedValue,
+        (sum, metric) => sum + metric.normalizedAverageWeightedValue,
         0
       );
       const dhi = Number(
@@ -466,11 +486,7 @@ export const calculateDomainHealthScores = async (
         windowStart,
         windowEnd,
         dataPointCount: latestResponses.length,
-        metricMeans: metricMeans.map(({ questionId, averageValue }) => ({
-          questionId,
-          averageValue,
-        })),
-        weightedMetrics,
+        metrics: weightedMetrics,
         dhi,
         status: getStatusFromDhi(dhi),
         sourceResponseIds,
