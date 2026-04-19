@@ -8,7 +8,7 @@ import { GetCheckInQuestionQueryDto, SubmitCheckInResponseDto } from '../types/c
 import { calculateDomainHealthScores } from '../services/DomainHealthScoreService';
 
 const clampScore = (score: number) => Math.max(0, Math.min(100, score));
-const NEW_DHI_CALCULATION_THRESHOLD = 0; // 14 days in milliseconds
+const NEW_DHI_CALCULATION_THRESHOLD = 14 * 24 * 60 * 60 * 1000; // 14 days in milliseconds
 
 const getNormalizedScore = (
   question: { type: 'scale' | 'number' | 'dropdown'; max?: number; invertedScore?: boolean },
